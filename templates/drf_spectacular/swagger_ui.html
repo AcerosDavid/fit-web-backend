@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    {% block head %}
+    <title>{{ title|default:"Swagger" }}</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% if favicon_href %}<link rel="icon" href="{{ favicon_href }}">{% endif %}
+    <link rel="stylesheet" href="{{ swagger_ui_css }}">
+    <style>
+      html { box-sizing: border-box; overflow-y: scroll; }
+      *, *:after, *:before { box-sizing: inherit; }
+      body { background: #fafafa; margin: 0; }
+
+      /* Theme toggle */
+      #theme-toggle {
+        position: fixed; top: 12px; right: 12px; z-index: 1000;
+        background: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+        border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer;
+      }
+      #theme-toggle:hover { background: #30363d; }
+      html.light #theme-toggle { background: #fff; color: #3b4151; border-color: #e3e3e3; }
+      html.light #theme-toggle:hover { background: #f0f0f0; }
+    </style>
+    <style id="dark-theme">
+      /* ─── Dark theme (default, se desactiva con el toggle) ───────────── */
+      html, body { background: #0d1117 !important; color: #c9d1d9; }
+      ::selection { background: #1f6feb55; }
+
+      *::-webkit-scrollbar { width: 10px; height: 10px; }
+      *::-webkit-scrollbar-track { background: #0d1117; }
+      *::-webkit-scrollbar-thumb { background: #30363d; border-radius: 6px; }
+      *::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+      .swagger-ui .info .title,
+      .swagger-ui .info p,
+      .swagger-ui .info a,
+      .swagger-ui .info .base__url,
+      .swagger-ui .info .title span,
+      .swagger-ui .info .version-stamp,
+      .swagger-ui .info .description p,
+      .swagger-ui .info .description code,
+      .swagger-ui .info .description a { color: #c9d1d9; }
+      .swagger-ui .info a { color: #58a6ff; }
+      .swagger-ui .info .title::before,
+      .swagger-ui .info .title::after { color: #484f58; }
+
+      .swagger-ui section.operation,
+      .swagger-ui .opblock-tag,
+      .swagger-ui .opblock-tag:hover { color: #c9d1d9; }
+      .swagger-ui .opblock-tag { background: #161b22; border-bottom-color: #30363d; }
+      .swagger-ui .opblock-tag code { color: #7d8590; background: #21262d; }
+      .swagger-ui .opblock-tag .arrow { border-color: #8b949e; }
+
+      .swagger-ui .opblock { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; }
+      .swagger-ui .opblock .opblock-summary-method { border-radius: 6px; }
+      .swagger-ui .opblock .opblock-summary-path,
+      .swagger-ui .opblock .opblock-summary-path__deprecated { color: #e6edf3; text-shadow: none; }
+      .swagger-ui .opblock .opblock-summary-description { color: #8b949e; }
+      .swagger-ui .opblock .opblock-section-header { background: #161b22; color: #c9d1d9; border-bottom-color: #30363d; box-shadow: none; }
+      .swagger-ui .opblock .opblock-description-wrapper,
+      .swagger-ui .opblock .opblock-external-docs,
+      .swagger-ui .opblock .opblock-title__add { background: #0d1117; color: #c9d1d9; padding: 15px 20px; }
+      .swagger-ui .opblock .opblock-description-wrapper p,
+      .swagger-ui .opblock .opblock-external-docs p { color: #8b949e; }
+      .swagger-ui .opblock.is-open .opblock-summary { border-bottom-color: #30363d; }
+      .swagger-ui .opblock-warning .opblock-summary-method,
+      .swagger-ui .opblock-deprecated .opblock-summary-method { opacity: .7; }
+
+      .swagger-ui .parameter__name,
+      .swagger-ui .parameter__name.required::after { color: #c9d1d9; }
+      .swagger-ui .parameter__name.required::after { color: #f85149; }
+      .swagger-ui .parameter__type { color: #8b949e; }
+      .swagger-ui .parameter__in { color: #8b949e; }
+      .swagger-ui .parameter__deprecated { color: #f85149; }
+      .swagger-ui .parameter__empty_description { display: none; }
+
+      .swagger-ui .parameters-box,
+      .swagger-ui .responses-box { background: #0d1117; border-color: #30363d; }
+      .swagger-ui .parameters .parameter__name,
+      .swagger-ui .parameters .parameter__type,
+      .swagger-ui .parameters .parameter__in,
+      .swagger-ui .parameters .parameter__description,
+      .swagger-ui .responses-inner .responses-response h4,
+      .swagger-ui .responses-inner .responses-response h5,
+      .swagger-ui .responses-inner .responses-response p { color: #c9d1d9; }
+      .swagger-ui .responses-inner .responses-response p { color: #8b949e; }
+
+      .swagger-ui table { background: #0d1117; }
+      .swagger-ui table thead tr th,
+      .swagger-ui .opblock-body table tbody tr td,
+      .swagger-ui .responses-inner table thead tr th,
+      .swagger-ui .responses-inner table tbody tr td { color: #c9d1d9; border-bottom-color: #30363d; }
+      .swagger-ui table thead tr th { background: #161b22; }
+      .swagger-ui .response-col_status,
+      .swagger-ui .response-col_links { color: #c9d1d9; }
+      .swagger-ui .response-col_description__inner div,
+      .swagger-ui .response-col_description__inner p { color: #8b949e; }
+
+      .swagger-ui .btn { color: #c9d1d9; background: #21262d; border: 1px solid #30363d; box-shadow: none; }
+      .swagger-ui .btn:hover { background: #30363d; border-color: #8b949e; }
+      .swagger-ui .btn-control { background: #21262d; }
+      .swagger-ui .btn.authorize { color: #388bfd; border-color: #388bfd55; }
+      .swagger-ui .btn.authorize svg { fill: #388bfd; }
+      .swagger-ui .btn.cancel { color: #f85149; border-color: #f8514955; }
+      .swagger-ui .btn.execute { color: #ffffff; background: #238636; border-color: #2ea043; }
+      .swagger-ui .btn.execute:hover { background: #2ea043; }
+
+      .swagger-ui input, .swagger-ui textarea, .swagger-ui select,
+      .swagger-ui .swagger-ui select { color: #c9d1d9; background: #0d1117; border-color: #30363d; }
+      .swagger-ui input:focus, .swagger-ui textarea:focus, .swagger-ui select:focus {
+        border-color: #388bfd; box-shadow: 0 0 0 1px #388bfd55;
+      }
+      .swagger-ui input::placeholder, .swagger-ui textarea::placeholder { color: #6e7681; }
+      .swagger-ui .opblock-control__status { color: #c9d1d9; }
+      .swagger-ui select { color-scheme: dark; }
+
+      .swagger-ui .scheme-container { background: #161b22; box-shadow: none; border: 1px solid #30363d; border-radius: 8px; }
+      .swagger-ui .scheme-container .schemes { background: transparent; }
+      .swagger-ui .scheme-container label { color: #c9d1d9; }
+      .swagger-ui .scheme-container .control { background: #0d1117; border-color: #30363d; color: #c9d1d9; }
+
+      .swagger-ui .models { border-color: #30363d; }
+      .swagger-ui .models h4 { color: #c9d1d9; background: #161b22; border-color: #30363d; }
+      .swagger-ui .models .model-container { background: #0d1117; border-color: #30363d; }
+      .swagger-ui .models .model-box { background: #161b22; border-color: #30363d; color: #c9d1d9; }
+      .swagger-ui .model-toggle { fill: #8b949e; }
+      .swagger-ui .model-title { color: #c9d1d9; }
+      .swagger-ui .model { color: #c9d1d9; }
+      .swagger-ui .prop-type { color: #79c0ff; }
+      .swagger-ui .prop-format { color: #8b949e; }
+
+      .swagger-ui .microlight,
+      .swagger-ui pre { background: #161b22 !important; color: #c9d1d9; border-color: #30363d; }
+      .swagger-ui code { background: #161b22; color: #c9d1d9; }
+      .swagger-ui .highlight-code .microlight { background: #161b22; }
+      .swagger-ui .curl { color: #c9d1d9; }
+
+      .swagger-ui .renderedMarkdown p,
+      .swagger-ui .renderedMarkdown li,
+      .swagger-ui .renderedMarkdown table td { color: #c9d1d9; }
+      .swagger-ui .renderedMarkdown a { color: #58a6ff; }
+
+      .swagger-ui .wrapper { padding: 0 20px; }
+      .swagger-ui .opblock-tag-section h2 { color: #c9d1d9; }
+      .swagger-ui .tab li { color: #8b949e; border-color: transparent; }
+      .swagger-ui .tab li.active { color: #c9d1d9; border-color: #388bfd; }
+      .swagger-ui .response-col_links { color: #58a6ff; }
+
+      .swagger-ui .topbar { background: #161b22; border-bottom-color: #30363d; }
+      .swagger-ui .topbar .download-url-wrapper input { color: #c9d1d9; background: #0d1117; border-color: #30363d; }
+
+      .swagger-ui .dialog-ux .modal-ux { background: #161b22; border-color: #30363d; }
+      .swagger-ui .dialog-ux .modal-ux .modal-header { background: #0d1117; border-bottom-color: #30363d; }
+      .swagger-ui .dialog-ux .modal-ux .modal-header .close-modal { color: #8b949e; }
+      .swagger-ui .dialog-ux .modal-ux .modal-body,
+      .swagger-ui .dialog-ux .modal-ux .modal-body p { color: #c9d1d9; }
+      .swagger-ui .dialog-ux .modal-ux .modal-body .auth__container .error-box { background: #3d1d1d; border-color: #f85149; }
+      .swagger-ui .dialog-ux .modal-ux .modal-body .auth__container .error-box p { color: #ffb3ad; }
+      .swagger-ui .authorization__btn-logout { color: #c9d1d9; background: #21262d; border-color: #30363d; }
+      .swagger-ui .authorization__btn { color: #c9d1d9; }
+      .swagger-ui .authorization__btn svg { fill: #c9d1d9; }
+      .swagger-ui .authorization-flow-btn { color: #c9d1d9; background: #21262d; border-color: #30363d; }
+      .swagger-ui .authorization-flow-btn.active { color: #fff; background: #1f6feb; border-color: #1f6feb; }
+
+      .swagger-ui .errors-wrapper { background: #3d1d1d; border-color: #f85149; }
+      .swagger-ui .errors-wrapper h4, .swagger-ui .errors-wrapper .errors { color: #ffb3ad; }
+      .swagger-ui .errors-wrapper li { color: #ffd7d5; }
+    </style>
+    {% endblock head %}
+  </head>
+  <body>
+    {% block body %}
+    <div id="swagger-ui"></div>
+    <script src="{{ swagger_ui_bundle }}"></script>
+    <script src="{{ swagger_ui_standalone }}"></script>
+    {% if script_url %}
+    <script src="{{ script_url }}"></script>
+    {% else %}
+    <script>
+    {% include template_name_js %}
+    </script>
+    {% endif %}
+    <script>
+      (function () {
+        var KEY = 'swagger-ui-theme';
+        var root = document.documentElement;
+        var dark = document.getElementById('dark-theme');
+        var light = localStorage.getItem(KEY) === 'light';
+
+        function apply(light) {
+          dark.disabled = light;
+          root.classList.toggle('light', light);
+          btn.textContent = light ? '☀ light' : '☾ dark';
+        }
+
+        var btn = document.createElement('button');
+        btn.id = 'theme-toggle';
+        btn.addEventListener('click', function () {
+          light = !light;
+          localStorage.setItem(KEY, light ? 'light' : 'dark');
+          apply(light);
+        });
+        document.body.appendChild(btn);
+        apply(light);
+      })();
+    </script>
+    {% endblock %}
+  </body>
+</html>
