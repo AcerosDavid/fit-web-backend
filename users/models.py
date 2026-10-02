@@ -5,6 +5,7 @@ class User(AbstractUser):
     class Role(models.TextChoices):
         ADMIN = "ADMIN", "Administrador"
         RECEPTIONIST = "RECEPTIONIST", "Recepcionista"
+        COACH = "COACH", "Entrenador"
 
     role = models.CharField(
         max_length=50, 
