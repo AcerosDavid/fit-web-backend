@@ -1,11 +1,28 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import generics, status, views
 from rest_framework.response import Response
 from django.utils import timezone
+from config.serializers import ErrorMessageSerializer
 from .models import Attendance
 from members.models import Member
 from .serializers import AttendanceSerializer, CheckInSerializer
 from members.views import IsAdminOrReceptionist
 
+@extend_schema(
+    tags=['attendance'],
+    summary='Listar asistencias',
+    description='Historial de check-in/check-out, filtrable por cliente y fecha.',
+    parameters=[
+        OpenApiParameter(
+            name='member', type=OpenApiTypes.INT, required=False,
+            description='Filtra por ID de cliente',
+        ),
+        OpenApiParameter(
+            name='date', type=OpenApiTypes.DATE, required=False,
+            description='Filtra por fecha de check-in (YYYY-MM-DD)',
+        ),
+    ],
+)
 class AttendanceListView(generics.ListAPIView):
     """
     GET /api/attendance/ -> List all attendances
@@ -26,6 +43,21 @@ class AttendanceListView(generics.ListAPIView):
             
         return queryset
 
+@extend_schema(
+    tags=['attendance'],
+    summary='Registrar check-in',
+    description=(
+        'Registra la entrada de un cliente al gimnasio. Devuelve 404 si el '
+        'cliente no existe o está inactivo, y 400 si ya tiene una asistencia '
+        'abierta (incluye attendance_id).'
+    ),
+    request=CheckInSerializer,
+    responses={
+        201: AttendanceSerializer,
+        400: ErrorMessageSerializer,
+        404: ErrorMessageSerializer,
+    },
+)
 class CheckInView(views.APIView):
     """
     POST /api/attendance/check-in/
@@ -65,6 +97,13 @@ class CheckInView(views.APIView):
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@extend_schema(
+    tags=['attendance'],
+    summary='Registrar check-out',
+    description='Cierra la asistencia activa del cliente. Devuelve 404 si no hay asistencia abierta.',
+    request=None,  # POST sin cuerpo
+    responses={200: AttendanceSerializer, 404: ErrorMessageSerializer},
+)
 class CheckOutView(views.APIView):
     """
     POST /api/attendance/{id}/check-out/

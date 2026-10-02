@@ -1,0 +1,2089 @@
+openapi: 3.0.3
+info:
+  title: Fit Web API
+  version: 1.0.0
+  description: 'API RESTful de gestión de gimnasio: autenticación JWT, clientes, planes,
+    membresías, pagos, asistencia (check-in/check-out), coaches y dashboard. Autentícate
+    en `POST /api/auth/login/` y usa el token en el header `Authorization: Bearer
+    <token>`.'
+paths:
+  /api/attendance/:
+    get:
+      operationId: attendance_list
+      description: Historial de check-in/check-out, filtrable por cliente y fecha.
+      summary: Listar asistencias
+      parameters:
+      - in: query
+        name: date
+        schema:
+          type: string
+          format: date
+        description: Filtra por fecha de check-in (YYYY-MM-DD)
+      - in: query
+        name: member
+        schema:
+          type: integer
+        description: Filtra por ID de cliente
+      tags:
+      - attendance
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Attendance'
+          description: ''
+  /api/attendance/{id}/check-out/:
+    post:
+      operationId: attendance_check_out_create
+      description: Cierra la asistencia activa del cliente. Devuelve 404 si no hay
+        asistencia abierta.
+      summary: Registrar check-out
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - attendance
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attendance'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+          description: ''
+  /api/attendance/check-in/:
+    post:
+      operationId: attendance_check_in_create
+      description: Registra la entrada de un cliente al gimnasio. Devuelve 404 si
+        el cliente no existe o está inactivo, y 400 si ya tiene una asistencia abierta
+        (incluye attendance_id).
+      summary: Registrar check-in
+      tags:
+      - attendance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckIn'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckIn'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckIn'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Attendance'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+          description: ''
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: 'Autentica con username/password y devuelve los tokens JWT más
+        el perfil del usuario. Usa `access` en `Authorization: Bearer <token>`.'
+      summary: Iniciar sesión
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPair'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPair'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CustomTokenObtainPair'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+          description: ''
+  /api/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      description: GET devuelve los datos del usuario autenticado; PUT/PATCH los actualizan
+        (sin password).
+      summary: Obtener/actualizar el perfil propio
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: auth_me_update
+      description: GET devuelve los datos del usuario autenticado; PUT/PATCH los actualizan
+        (sin password).
+      summary: Obtener/actualizar el perfil propio
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: auth_me_partial_update
+      description: GET devuelve los datos del usuario autenticado; PUT/PATCH los actualizan
+        (sin password).
+      summary: Obtener/actualizar el perfil propio
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+  /api/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: Intercambia un `refresh` válido por un nuevo par `access` + `refresh`
+        (ROTATE_REFRESH_TOKENS=True).
+      summary: Refrescar tokens
+      tags:
+      - auth
+      requestBody:
+        content:
+          refresh:
+            schema:
+              type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+          description: ''
+  /api/coaches/:
+    get:
+      operationId: coaches_list
+      description: GET lista los entrenadores activos; POST crea uno.
+      summary: Listar o crear entrenadores
+      tags:
+      - coaches
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Coach'
+          description: ''
+    post:
+      operationId: coaches_create
+      description: GET lista los entrenadores activos; POST crea uno.
+      summary: Listar o crear entrenadores
+      tags:
+      - coaches
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Coach'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Coach'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Coach'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coach'
+          description: ''
+  /api/coaches/{id}/:
+    get:
+      operationId: coaches_retrieve
+      description: DELETE hace soft-delete (is_active=False) para conservar el historial.
+      summary: Detalle/actualizar/eliminar un entrenador
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - coaches
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coach'
+          description: ''
+    put:
+      operationId: coaches_update
+      description: DELETE hace soft-delete (is_active=False) para conservar el historial.
+      summary: Detalle/actualizar/eliminar un entrenador
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - coaches
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Coach'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Coach'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Coach'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coach'
+          description: ''
+    patch:
+      operationId: coaches_partial_update
+      description: DELETE hace soft-delete (is_active=False) para conservar el historial.
+      summary: Detalle/actualizar/eliminar un entrenador
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - coaches
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCoach'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCoach'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCoach'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Coach'
+          description: ''
+    delete:
+      operationId: coaches_destroy
+      description: DELETE hace soft-delete (is_active=False) para conservar el historial.
+      summary: Detalle/actualizar/eliminar un entrenador
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - coaches
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/dashboard/:
+    get:
+      operationId: dashboard_retrieve
+      description: 'Agrega en tiempo real: clientes activos, ingresos del mes, asistencias
+        de hoy, membresías que vencen en 7 días y el mes de referencia.'
+      summary: Métricas del panel de administración
+      tags:
+      - dashboard
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardStats'
+          description: ''
+  /api/health/:
+    get:
+      operationId: health_retrieve
+      description: 'Devuelve `{"status": "ok"}` si la API y la base de datos responden.
+        No requiere autenticación.'
+      summary: Estado del servicio
+      tags:
+      - health
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/members/:
+    get:
+      operationId: members_list
+      description: GET devuelve solo los clientes activos (excluye los soft-deletados).
+        POST crea un cliente.
+      summary: Listar o crear clientes
+      tags:
+      - members
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Member'
+          description: ''
+    post:
+      operationId: members_create
+      description: GET devuelve solo los clientes activos (excluye los soft-deletados).
+        POST crea un cliente.
+      summary: Listar o crear clientes
+      tags:
+      - members
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberCreateUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MemberCreateUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MemberCreateUpdate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberCreateUpdate'
+          description: ''
+  /api/members/{id}/:
+    get:
+      operationId: members_retrieve
+      description: GET devuelve el cliente; PUT/PATCH actualizan (serializer de creación/edición).
+      summary: Detalle/actualizar un cliente
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - members
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
+    put:
+      operationId: members_update
+      description: GET devuelve el cliente; PUT/PATCH actualizan (serializer de creación/edición).
+      summary: Detalle/actualizar un cliente
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - members
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MemberCreateUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MemberCreateUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MemberCreateUpdate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberCreateUpdate'
+          description: ''
+    patch:
+      operationId: members_partial_update
+      description: GET devuelve el cliente; PUT/PATCH actualizan (serializer de creación/edición).
+      summary: Detalle/actualizar un cliente
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - members
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMemberCreateUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMemberCreateUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMemberCreateUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberCreateUpdate'
+          description: ''
+  /api/members/{id}/delete/:
+    delete:
+      operationId: members_delete_destroy
+      description: Marca el cliente como eliminado (deleted_at) sin borrar su historial
+        contable.
+      summary: Soft-delete de un cliente
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - members
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailMessage'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailMessage'
+          description: ''
+  /api/members/{id}/restore/:
+    post:
+      operationId: members_restore_create
+      description: Revierte el soft-delete. Devuelve 400 si el cliente no estaba eliminado.
+      summary: Restaurar un cliente eliminado
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - members
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Member'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailMessage'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailMessage'
+          description: ''
+  /api/memberships/:
+    get:
+      operationId: memberships_list
+      description: GET lista membresías; POST asigna un plan a un cliente (calcula
+        end_date automáticamente).
+      summary: Listar o asignar membresías
+      parameters:
+      - in: query
+        name: member
+        schema:
+          type: integer
+        description: Filtra membresías por ID de cliente
+      tags:
+      - memberships
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Membership'
+          description: ''
+    post:
+      operationId: memberships_create
+      description: GET lista membresías; POST asigna un plan a un cliente (calcula
+        end_date automáticamente).
+      summary: Listar o asignar membresías
+      parameters:
+      - in: query
+        name: member
+        schema:
+          type: integer
+        description: Filtra membresías por ID de cliente
+      tags:
+      - memberships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Membership'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Membership'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Membership'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+          description: ''
+  /api/memberships/{id}/:
+    get:
+      operationId: memberships_retrieve
+      description: GET devuelve la membresía; PUT/PATCH permite cambiar el estado
+        (ej. CANCELLED).
+      summary: Detalle/actualizar una membresía
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - memberships
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+          description: ''
+    put:
+      operationId: memberships_update
+      description: GET devuelve la membresía; PUT/PATCH permite cambiar el estado
+        (ej. CANCELLED).
+      summary: Detalle/actualizar una membresía
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - memberships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Membership'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Membership'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Membership'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+          description: ''
+    patch:
+      operationId: memberships_partial_update
+      description: GET devuelve la membresía; PUT/PATCH permite cambiar el estado
+        (ej. CANCELLED).
+      summary: Detalle/actualizar una membresía
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - memberships
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMembership'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMembership'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMembership'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Membership'
+          description: ''
+  /api/payments/:
+    get:
+      operationId: payments_list
+      description: GET lista cobros; POST registra un cobro (efectivo, tarjeta o transferencia).
+      summary: Listar o registrar pagos
+      parameters:
+      - in: query
+        name: member
+        schema:
+          type: integer
+        description: Filtra pagos por ID de cliente
+      - in: query
+        name: membership
+        schema:
+          type: integer
+        description: Filtra pagos por ID de membresía
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payment'
+          description: ''
+    post:
+      operationId: payments_create
+      description: GET lista cobros; POST registra un cobro (efectivo, tarjeta o transferencia).
+      summary: Listar o registrar pagos
+      parameters:
+      - in: query
+        name: member
+        schema:
+          type: integer
+        description: Filtra pagos por ID de cliente
+      - in: query
+        name: membership
+        schema:
+          type: integer
+        description: Filtra pagos por ID de membresía
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Payment'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/payments/{id}/:
+    get:
+      operationId: payments_retrieve
+      description: GET devuelve el pago; PUT/PATCH permite corregir datos (ej. notas).
+      summary: Detalle/actualizar un pago
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - payments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    put:
+      operationId: payments_update
+      description: GET devuelve el pago; PUT/PATCH permite corregir datos (ej. notas).
+      summary: Detalle/actualizar un pago
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Payment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Payment'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+    patch:
+      operationId: payments_partial_update
+      description: GET devuelve el pago; PUT/PATCH permite corregir datos (ej. notas).
+      summary: Detalle/actualizar un pago
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - payments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPayment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPayment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPayment'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+          description: ''
+  /api/plans/:
+    get:
+      operationId: plans_list
+      description: 'GET: admin o recepción. POST: solo admin.'
+      summary: Listar o crear planes
+      tags:
+      - plans
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plan'
+          description: ''
+    post:
+      operationId: plans_create
+      description: 'GET: admin o recepción. POST: solo admin.'
+      summary: Listar o crear planes
+      tags:
+      - plans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Plan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Plan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Plan'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/plans/{id}/:
+    get:
+      operationId: plans_retrieve
+      description: 'GET: admin o recepción. PUT/PATCH/DELETE: solo admin.'
+      summary: Detalle/actualizar/eliminar un plan
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plans
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+    put:
+      operationId: plans_update
+      description: 'GET: admin o recepción. PUT/PATCH/DELETE: solo admin.'
+      summary: Detalle/actualizar/eliminar un plan
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Plan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Plan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Plan'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+    patch:
+      operationId: plans_partial_update
+      description: 'GET: admin o recepción. PUT/PATCH/DELETE: solo admin.'
+      summary: Detalle/actualizar/eliminar un plan
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPlan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPlan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPlan'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+    delete:
+      operationId: plans_destroy
+      description: 'GET: admin o recepción. PUT/PATCH/DELETE: solo admin.'
+      summary: Detalle/actualizar/eliminar un plan
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plans
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/schema/:
+    get:
+      operationId: schema_retrieve
+      description: |-
+        OpenApi3 schema for this API. Format can be selected via content negotiation.
+
+        - YAML: application/vnd.oai.openapi
+        - JSON: application/vnd.oai.openapi+json
+      parameters:
+      - in: query
+        name: format
+        schema:
+          type: string
+          enum:
+          - json
+          - yaml
+      - in: query
+        name: lang
+        schema:
+          type: string
+          enum:
+          - af
+          - ar
+          - ar-dz
+          - ast
+          - az
+          - be
+          - bg
+          - bn
+          - br
+          - bs
+          - ca
+          - ckb
+          - cs
+          - cy
+          - da
+          - de
+          - dsb
+          - el
+          - en
+          - en-au
+          - en-gb
+          - eo
+          - es
+          - es-ar
+          - es-co
+          - es-mx
+          - es-ni
+          - es-ve
+          - et
+          - eu
+          - fa
+          - fi
+          - fr
+          - fy
+          - ga
+          - gd
+          - gl
+          - he
+          - hi
+          - hr
+          - hsb
+          - ht
+          - hu
+          - hy
+          - ia
+          - id
+          - ig
+          - io
+          - is
+          - it
+          - ja
+          - ka
+          - kab
+          - kk
+          - km
+          - kn
+          - ko
+          - ky
+          - lb
+          - lt
+          - lv
+          - mk
+          - ml
+          - mn
+          - mr
+          - ms
+          - my
+          - nb
+          - ne
+          - nl
+          - nn
+          - os
+          - pa
+          - pl
+          - pt
+          - pt-br
+          - ro
+          - ru
+          - sk
+          - sl
+          - sq
+          - sr
+          - sr-latn
+          - sv
+          - sw
+          - ta
+          - te
+          - tg
+          - th
+          - tk
+          - tr
+          - tt
+          - udm
+          - ug
+          - uk
+          - ur
+          - uz
+          - vi
+          - zh-hans
+          - zh-hant
+      tags:
+      - schema
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/vnd.oai.openapi:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/yaml:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/vnd.oai.openapi+json:
+              schema:
+                type: object
+                additionalProperties: {}
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/users/:
+    get:
+      operationId: users_list
+      description: GET requiere rol Admin. El password se envía write-only (mínimo
+        8 caracteres).
+      summary: Listar o crear usuarios del staff
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+          description: ''
+    post:
+      operationId: users_create
+      description: GET requiere rol Admin. El password se envía write-only (mínimo
+        8 caracteres).
+      summary: Listar o crear usuarios del staff
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterUser'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterUser'
+          description: ''
+  /api/users/{id}/:
+    get:
+      operationId: users_retrieve
+      description: Operaciones sobre un usuario por ID (solo Admin).
+      summary: Detalle/actualizar/eliminar un usuario
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    put:
+      operationId: users_update
+      description: Operaciones sobre un usuario por ID (solo Admin).
+      summary: Detalle/actualizar/eliminar un usuario
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/User'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    patch:
+      operationId: users_partial_update
+      description: Operaciones sobre un usuario por ID (solo Admin).
+      summary: Detalle/actualizar/eliminar un usuario
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUser'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+    delete:
+      operationId: users_destroy
+      description: Operaciones sobre un usuario por ID (solo Admin).
+      summary: Detalle/actualizar/eliminar un usuario
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+components:
+  schemas:
+    Attendance:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        member:
+          type: integer
+        check_in:
+          type: string
+          format: date-time
+          readOnly: true
+        check_out:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        registered_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        member_details:
+          allOf:
+          - $ref: '#/components/schemas/Member'
+          readOnly: true
+      required:
+      - check_in
+      - check_out
+      - id
+      - member
+      - member_details
+      - registered_by
+    BlankEnum:
+      enum:
+      - ''
+    CheckIn:
+      type: object
+      properties:
+        member_id:
+          type: integer
+      required:
+      - member_id
+    Coach:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        specialty:
+          type: string
+          description: 'Ej: Pesas, Crossfit, Zumba'
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 20
+        bio:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        user:
+          type: integer
+          nullable: true
+          description: Usuario de sistema asociado (opcional)
+      required:
+      - created_at
+      - first_name
+      - id
+      - last_name
+      - specialty
+      - updated_at
+    CustomTokenObtainPair:
+      type: object
+      description: |-
+        Extends the default JWT login response to include user info.
+        Instead of returning only { access, refresh },
+        returns: { access, refresh, user: { id, username, role, ... } }
+      properties:
+        username:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - password
+      - username
+    DashboardStats:
+      type: object
+      description: Métricas agregadas de GET /api/dashboard/.
+      properties:
+        active_members:
+          type: integer
+        monthly_revenue:
+          type: number
+          format: double
+        todays_attendance:
+          type: integer
+        expiring_memberships:
+          type: integer
+        month:
+          type: string
+      required:
+      - active_members
+      - expiring_memberships
+      - month
+      - monthly_revenue
+      - todays_attendance
+    DetailMessage:
+      type: object
+      description: 'Respuesta genérica: {"detail": "..."}'
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    ErrorMessage:
+      type: object
+      description: 'Respuesta de error: {"error": "..."} (+ attendance_id opcional).'
+      properties:
+        error:
+          type: string
+        attendance_id:
+          type: integer
+      required:
+      - error
+    GenderEnum:
+      enum:
+      - MALE
+      - FEMALE
+      - OTHER
+      type: string
+      description: |-
+        * `MALE` - Male
+        * `FEMALE` - Female
+        * `OTHER` - Other
+    LoginResponse:
+      type: object
+      description: Respuesta de POST /api/auth/login/.
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+      required:
+      - access
+      - refresh
+      - user
+    Member:
+      type: object
+      description: Serializer for reading member data.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        full_name:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 20
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        gender:
+          oneOf:
+          - $ref: '#/components/schemas/GenderEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        status:
+          $ref: '#/components/schemas/MemberStatusEnum'
+        is_deleted:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - first_name
+      - full_name
+      - id
+      - is_deleted
+      - last_name
+      - updated_at
+    MemberCreateUpdate:
+      type: object
+      description: Serializer for creating and updating members.
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 20
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        gender:
+          oneOf:
+          - $ref: '#/components/schemas/GenderEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        status:
+          $ref: '#/components/schemas/MemberStatusEnum'
+      required:
+      - email
+      - first_name
+      - last_name
+    MemberStatusEnum:
+      enum:
+      - ACTIVE
+      - INACTIVE
+      - SUSPENDED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `INACTIVE` - Inactive
+        * `SUSPENDED` - Suspended
+    Membership:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        member:
+          type: integer
+        plan:
+          type: integer
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/MembershipStatusEnum'
+        is_valid:
+          type: boolean
+          readOnly: true
+        created_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        member_details:
+          allOf:
+          - $ref: '#/components/schemas/Member'
+          readOnly: true
+        plan_details:
+          allOf:
+          - $ref: '#/components/schemas/Plan'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - created_by
+      - end_date
+      - id
+      - is_valid
+      - member
+      - member_details
+      - plan
+      - plan_details
+      - updated_at
+    MembershipStatusEnum:
+      enum:
+      - ACTIVE
+      - EXPIRED
+      - CANCELLED
+      type: string
+      description: |-
+        * `ACTIVE` - Active
+        * `EXPIRED` - Expired
+        * `CANCELLED` - Cancelled
+    MethodEnum:
+      enum:
+      - CASH
+      - CARD
+      - TRANSFER
+      type: string
+      description: |-
+        * `CASH` - Efectivo
+        * `CARD` - Tarjeta
+        * `TRANSFER` - Transferencia
+    PatchedCoach:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        specialty:
+          type: string
+          description: 'Ej: Pesas, Crossfit, Zumba'
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 20
+        bio:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        user:
+          type: integer
+          nullable: true
+          description: Usuario de sistema asociado (opcional)
+    PatchedMemberCreateUpdate:
+      type: object
+      description: Serializer for creating and updating members.
+      properties:
+        first_name:
+          type: string
+          maxLength: 100
+        last_name:
+          type: string
+          maxLength: 100
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 20
+        date_of_birth:
+          type: string
+          format: date
+          nullable: true
+        gender:
+          oneOf:
+          - $ref: '#/components/schemas/GenderEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        status:
+          $ref: '#/components/schemas/MemberStatusEnum'
+    PatchedMembership:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        member:
+          type: integer
+        plan:
+          type: integer
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/MembershipStatusEnum'
+        is_valid:
+          type: boolean
+          readOnly: true
+        created_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        member_details:
+          allOf:
+          - $ref: '#/components/schemas/Member'
+          readOnly: true
+        plan_details:
+          allOf:
+          - $ref: '#/components/schemas/Plan'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPayment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        membership:
+          type: integer
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        payment_date:
+          type: string
+          format: date-time
+        method:
+          $ref: '#/components/schemas/MethodEnum'
+        notes:
+          type: string
+        received_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        membership_details:
+          allOf:
+          - $ref: '#/components/schemas/Membership'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedPlan:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Duration of the plan in days
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+    PatchedUser:
+      type: object
+      description: Serializer for reading user data. Never exposes the password.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+    Payment:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        membership:
+          type: integer
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        payment_date:
+          type: string
+          format: date-time
+        method:
+          $ref: '#/components/schemas/MethodEnum'
+        notes:
+          type: string
+        received_by:
+          type: integer
+          readOnly: true
+          nullable: true
+        membership_details:
+          allOf:
+          - $ref: '#/components/schemas/Membership'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - id
+      - membership
+      - membership_details
+      - received_by
+      - updated_at
+    Plan:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        duration_days:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          description: Duration of the plan in days
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - duration_days
+      - id
+      - name
+      - price
+      - updated_at
+    RefreshResponse:
+      type: object
+      description: Respuesta de POST /api/auth/refresh/ (ROTATE_REFRESH_TOKENS=True).
+      properties:
+        access:
+          type: string
+        refresh:
+          type: string
+      required:
+      - access
+      - refresh
+    RegisterUser:
+      type: object
+      description: Serializer for creating new users (admin only).
+      properties:
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+      required:
+      - password
+      - username
+    RoleEnum:
+      enum:
+      - ADMIN
+      - RECEPTIONIST
+      - COACH
+      type: string
+      description: |-
+        * `ADMIN` - Administrador
+        * `RECEPTIONIST` - Recepcionista
+        * `COACH` - Entrenador
+    User:
+      type: object
+      description: Serializer for reading user data. Never exposes the password.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+      required:
+      - id
+      - username
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+tags:
+- name: auth
+  description: Login JWT, refresh y perfil del usuario
+- name: users
+  description: Gestión del staff (admins y recepcionistas)
+- name: members
+  description: Clientes del gimnasio (soft-delete)
+- name: plans
+  description: Catálogo de planes de suscripción
+- name: memberships
+  description: Suscripciones cliente ↔ plan
+- name: payments
+  description: Registro de cobros
+- name: attendance
+  description: Check-in / check-out de acceso
+- name: dashboard
+  description: Métricas financieras y operativas
+- name: coaches
+  description: Entrenadores (soft-delete)
+- name: health
+  description: Salud del servicio

@@ -109,6 +109,31 @@ docker compose down -v                      # Parar y borrar la base de datos
 
 ---
 
+## 📖 Documentación de la API (Swagger)
+
+La API se documenta con **[drf-spectacular](https://drf-spectacular.readthedocs.io)** (OpenAPI 3) y se sirve con assets locales (`drf-spectacular-sidecar`, sin CDN):
+
+| URL | Contenido |
+|---|---|
+| `http://127.0.0.1:8000/api/schema/swagger-ui/` | **Swagger UI** interactiva (con "Try it out") |
+| `http://127.0.0.1:8000/api/schema/` | Esquema OpenAPI (JSON; `?format=yaml` para YAML) |
+
+Ambos son **públicos** (no requieren token). El esquema se genera automáticamente desde el código (`@extend_schema` en las vistas).
+
+### Regenerar `schema.yaml` (versionado en el repo)
+El archivo `schema.yaml` de la raíz es la fuente de verdad para los clientes (frontend/móvil). **Se regenera y se commitea en cada cambio de API:**
+```bash
+docker compose exec web python manage.py spectacular --file schema.yaml --validate
+# o en desarrollo:
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec web python manage.py spectacular --file schema.yaml --validate
+```
+La validación debe terminar **sin warnings ni errors**.
+
+### Mantenimiento automático con IA
+Existe un skill multi-IA en [`.agents/skills/actualizar-swagger/SKILL.md`](.agents/skills/actualizar-swagger/SKILL.md) (compatible con Devin, opencode, Cursor, Codex, Gemini CLI, Copilot…): cada vez que se crea o modifica un endpoint/serializer/modelo, la IA debe anotarlo con `@extend_schema`, regenerar `schema.yaml` y verificar la UI.
+
+---
+
 ## 🛠 Instalación y Configuración (Entorno de Desarrollo)
 
 Sigue estos pasos para clonar y ejecutar la API en tu máquina local:

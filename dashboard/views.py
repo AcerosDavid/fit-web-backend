@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.utils import timezone
@@ -7,7 +8,17 @@ from memberships.models import Membership
 from payments.models import Payment
 from attendance.models import Attendance
 from members.views import IsAdminOrReceptionist
+from .serializers import DashboardStatsSerializer
 
+@extend_schema(
+    tags=['dashboard'],
+    summary='Métricas del panel de administración',
+    description=(
+        'Agrega en tiempo real: clientes activos, ingresos del mes, '
+        'asistencias de hoy, membresías que vencen en 7 días y el mes de referencia.'
+    ),
+    responses={200: DashboardStatsSerializer},
+)
 class DashboardStatsView(APIView):
     """
     GET /api/dashboard/

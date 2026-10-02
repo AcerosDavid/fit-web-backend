@@ -1,8 +1,24 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import generics
 from .models import Payment
 from .serializers import PaymentSerializer
 from members.views import IsAdminOrReceptionist
 
+@extend_schema(
+    tags=['payments'],
+    summary='Listar o registrar pagos',
+    description='GET lista cobros; POST registra un cobro (efectivo, tarjeta o transferencia).',
+    parameters=[
+        OpenApiParameter(
+            name='membership', type=OpenApiTypes.INT, required=False,
+            description='Filtra pagos por ID de membresía',
+        ),
+        OpenApiParameter(
+            name='member', type=OpenApiTypes.INT, required=False,
+            description='Filtra pagos por ID de cliente',
+        ),
+    ],
+)
 class PaymentListCreateView(generics.ListCreateAPIView):
     """
     GET /api/payments/ -> List all payments
@@ -25,6 +41,11 @@ class PaymentListCreateView(generics.ListCreateAPIView):
             
         return queryset
 
+@extend_schema(
+    tags=['payments'],
+    summary='Detalle/actualizar un pago',
+    description='GET devuelve el pago; PUT/PATCH permite corregir datos (ej. notas).',
+)
 class PaymentDetailView(generics.RetrieveUpdateAPIView):
     """
     GET /api/payments/{id}/ -> View payment details

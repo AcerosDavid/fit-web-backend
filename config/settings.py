@@ -41,6 +41,8 @@ INSTALLED_APPS = [
 
     # Third party
     'rest_framework',
+    'drf_spectacular',
+    'drf_spectacular_sidecar',
 
     # Local apps
     'users',
@@ -174,6 +176,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    # Esquema OpenAPI (Swagger) generado con drf-spectacular
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 
@@ -183,4 +187,37 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),    # Refresh válido por 7 días
     'ROTATE_REFRESH_TOKENS': True,                  # Genera nuevo refresh en cada uso
     'AUTH_HEADER_TYPES': ('Bearer',),               # Authorization: Bearer <token>
+}
+
+
+# ─── drf-spectacular (OpenAPI / Swagger) ──────────────────────────────────────
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Fit Web API',
+    'DESCRIPTION': (
+        'API RESTful de gestión de gimnasio: autenticación JWT, clientes, planes, '
+        'membresías, pagos, asistencia (check-in/check-out), coaches y dashboard. '
+        'Autentícate en `POST /api/auth/login/` y usa el token en el header '
+        '`Authorization: Bearer <token>`.'
+    ),
+    'VERSION': '1.0.0',
+    'SERVE_PUBLIC': True,          # Docs accesibles sin token
+    'SWAGGER_UI_DIST': 'SIDECAR',  # Assets locales (sin CDN)
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    'TAGS': [
+        {'name': 'auth', 'description': 'Login JWT, refresh y perfil del usuario'},
+        {'name': 'users', 'description': 'Gestión del staff (admins y recepcionistas)'},
+        {'name': 'members', 'description': 'Clientes del gimnasio (soft-delete)'},
+        {'name': 'plans', 'description': 'Catálogo de planes de suscripción'},
+        {'name': 'memberships', 'description': 'Suscripciones cliente ↔ plan'},
+        {'name': 'payments', 'description': 'Registro de cobros'},
+        {'name': 'attendance', 'description': 'Check-in / check-out de acceso'},
+        {'name': 'dashboard', 'description': 'Métricas financieras y operativas'},
+        {'name': 'coaches', 'description': 'Entrenadores (soft-delete)'},
+        {'name': 'health', 'description': 'Salud del servicio'},
+    ],
+    # Nombres explícitos para los enums "status" (Member y Membership)
+    'ENUM_NAME_OVERRIDES': {
+        'MemberStatusEnum': 'members.models.Member.Status',
+        'MembershipStatusEnum': 'memberships.models.Membership.Status',
+    },
 }

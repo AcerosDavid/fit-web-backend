@@ -1,6 +1,8 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from config.serializers import DetailMessageSerializer
 from .models import Member
 from .serializers import MemberSerializer, MemberCreateUpdateSerializer
 
@@ -16,6 +18,11 @@ class IsAdminOrReceptionist(permissions.BasePermission):
         return request.user.role in (User.Role.ADMIN, User.Role.RECEPTIONIST)
 
 
+@extend_schema(
+    tags=['members'],
+    summary='Listar o crear clientes',
+    description='GET devuelve solo los clientes activos (excluye los soft-deletados). POST crea un cliente.',
+)
 class MemberListCreateView(generics.ListCreateAPIView):
     """
     GET  /api/members/   → List all active members (not soft-deleted)
@@ -30,6 +37,11 @@ class MemberListCreateView(generics.ListCreateAPIView):
         return MemberSerializer
 
 
+@extend_schema(
+    tags=['members'],
+    summary='Detalle/actualizar un cliente',
+    description='GET devuelve el cliente; PUT/PATCH actualizan (serializer de creación/edición).',
+)
 class MemberDetailView(generics.RetrieveUpdateAPIView):
     """
     GET   /api/members/{id}/   → Get member details
@@ -45,6 +57,12 @@ class MemberDetailView(generics.RetrieveUpdateAPIView):
         return MemberSerializer
 
 
+@extend_schema(
+    tags=['members'],
+    summary='Soft-delete de un cliente',
+    description='Marca el cliente como eliminado (deleted_at) sin borrar su historial contable.',
+    responses={200: DetailMessageSerializer, 404: DetailMessageSerializer},
+)
 class MemberDeleteView(APIView):
     """
     DELETE /api/members/{id}/delete/  → Soft delete a member
@@ -61,6 +79,13 @@ class MemberDeleteView(APIView):
         return Response({"detail": f"Member '{member.full_name}' has been deactivated."}, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    tags=['members'],
+    summary='Restaurar un cliente eliminado',
+    description='Revierte el soft-delete. Devuelve 400 si el cliente no estaba eliminado.',
+    request=None,  # POST sin cuerpo
+    responses={200: MemberSerializer, 400: DetailMessageSerializer, 404: DetailMessageSerializer},
+)
 class MemberRestoreView(APIView):
     """
     POST /api/members/{id}/restore/  → Restore a soft-deleted member

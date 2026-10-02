@@ -1,11 +1,10 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenRefreshView
-from .views import LoginView, MeView, UserListCreateView, UserDetailView
+from .views import LoginView, MeView, RefreshView, UserListCreateView, UserDetailView
 
 urlpatterns = [
     # Auth routes
     path("auth/login/",   LoginView.as_view(),        name="auth-login"),
-    path("auth/refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
+    path("auth/refresh/", RefreshView.as_view(),      name="auth-refresh"),
     path("auth/me/",      MeView.as_view(),            name="auth-me"),
 
     # User management routes (Admin only)

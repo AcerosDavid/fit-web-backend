@@ -40,3 +40,18 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
         return data
+
+
+class LoginResponseSerializer(serializers.Serializer):
+    """Respuesta de POST /api/auth/login/."""
+
+    access = serializers.CharField()
+    refresh = serializers.CharField()
+    user = UserSerializer()
+
+
+class RefreshResponseSerializer(serializers.Serializer):
+    """Respuesta de POST /api/auth/refresh/ (ROTATE_REFRESH_TOKENS=True)."""
+
+    access = serializers.CharField()
+    refresh = serializers.CharField()
