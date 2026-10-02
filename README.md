@@ -87,6 +87,12 @@ El servicio `web` solo pasa a `healthy` cuando la BD responde, las migraciones c
 ### 4. Seeders de datos de prueba
 Se ejecutan **una sola vez**, en este orden:
 ```bash
+docker compose exec web python manage.py seed_all
+```
+`seed_all` corre los 6 seeders en orden (`seed`, `seed_members`, `seed_plans`, `seed_memberships`, `seed_payments`, `seed_attendance`). Opciones: `--count=N` (miembros, default 100) y `--flush` (borra pagos, asistencias, membresías, miembros y usuarios antes de sembrar).
+
+O individualmente:
+```bash
 docker compose exec web python manage.py seed
 docker compose exec web python manage.py seed_members
 docker compose exec web python manage.py seed_plans
@@ -177,7 +183,13 @@ python manage.py migrate
 ```
 
 ### 6. Población de datos falsos (Seeders)
-Para no probar el sistema vacío, hemos creado comandos que llenan la base de datos con información aleatoria y realista. **Debes ejecutarlos exactamente en este orden**:
+Para no probar el sistema vacío, hemos creado comandos que llenan la base de datos con información aleatoria y realista. Todos en un solo paso:
+
+```bash
+python manage.py seed_all            # options: --count=50, --flush
+```
+
+O **exactamente en este orden**:
 
 ```bash
 # 1. Crea el admin por defecto y los roles
