@@ -1,0 +1,36 @@
+# Git
+.git
+.gitignore
+
+# Entornos y secretos
+.env
+.venv/
+venv/
+env/
+
+# Artefactos de Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+
+# Base de datos y artefactos locales
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+*.log
+
+# Docker (evita invalidar la caché de builds)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Innecesarios en la imagen
+.vscode/
+.idea/
+logo.png
+*.md
+.agents/
+.opencode/
+.claude/

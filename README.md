@@ -6,11 +6,12 @@
   
   <br>
   
-  ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
+  ![Python](https://img.shields.io/badge/Python-3.12+-3776AB?style=for-the-badge&logo=python&logoColor=white)
   ![Django](https://img.shields.io/badge/Django-4.2+-092E20?style=for-the-badge&logo=django&logoColor=white)
   ![Django REST Framework](https://img.shields.io/badge/Django_REST-ff1709?style=for-the-badge&logo=django&logoColor=white&color=ff1709&labelColor=gray)
   ![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)
-  ![SQLite](https://img.shields.io/badge/SQLite-07405E?style=for-the-badge&logo=sqlite&logoColor=white)
+  ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+  ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 </div>
 
 <br/>
@@ -38,8 +39,73 @@ El proyecto está dividido en 7 aplicaciones modulares de Django:
 ## 🚀 Requisitos Previos
 
 Asegúrate de tener instalado en tu sistema:
-- Python 3.10 o superior.
+- Python 3.12 o superior (Django 6.1).
 - Git.
+
+Para ejecutarlo con Docker:
+- [Docker](https://docs.docker.com/get-docker/) con Docker Compose v2.
+
+---
+
+## 🐳 Ejecución con Docker (recomendada)
+
+El proyecto incluye `docker-compose.yml` (producción, **gunicorn**) y `docker-compose.dev.yml` (desarrollo, `runserver` con recarga en caliente). PostgreSQL 17 corre como servicio `db` y las migraciones/estáticos se aplican automáticamente al arrancar.
+
+### 1. Configurar variables de entorno
+```bash
+cp .env.example .env
+```
+*(Genera una clave secreta con: `python -c "import secrets; print(secrets.token_urlsafe(50))"`)*
+
+> `DEBUG` y la base de datos en Docker los fija el propio `docker-compose.yml`: **`DEBUG=False` en producción** y **`DEBUG=True` en desarrollo**. En tu `.env` solo se usan `SECRET_KEY`, `ALLOWED_HOSTS` y las credenciales de PostgreSQL (`DB_NAME`, `DB_USER`, `DB_PASSWORD`).
+
+### 2. Desarrollo (recarga en caliente)
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+API en `http://127.0.0.1:8000/` y PostgreSQL publicado en el host por el puerto `5434` (configurable con `DB_HOST_PORT` en tu `.env`).
+
+#### Adminer (solo en desarrollo)
+El override de desarrollo incluye [Adminer](https://www.adminer.org/) para gestionar la BD con interfaz web en `http://127.0.0.1:8081/` (configurable con `ADMINER_PORT`). Credenciales del login:
+
+| Campo | Valor |
+|---|---|
+| Sistema | PostgreSQL |
+| Servidor | `db` (ya precargado) |
+| Usuario | `postgres` |
+| Contraseña | `postgres` |
+| Base de datos | `fit_gym` |
+
+> ⚠️ Adminer **no existe en producción** (solo se define en `docker-compose.dev.yml`).
+
+### 3. Producción (gunicorn)
+```bash
+docker compose up --build -d
+```
+El servicio `web` solo pasa a `healthy` cuando la BD responde, las migraciones corren y los estáticos se recopilan (servidos con WhiteNoise, por lo que `/admin/` funciona con `DEBUG=False`).
+
+### 4. Seeders de datos de prueba
+Se ejecutan **una sola vez**, en este orden:
+```bash
+docker compose exec web python manage.py seed
+docker compose exec web python manage.py seed_members
+docker compose exec web python manage.py seed_plans
+docker compose exec web python manage.py seed_memberships
+docker compose exec web python manage.py seed_payments
+docker compose exec web python manage.py seed_attendance
+```
+
+### 5. Otras operaciones útiles
+```bash
+docker compose logs -f web                 # Logs del API
+docker compose exec web python manage.py shell
+docker compose exec web python manage.py test
+docker compose down                         # Parar (los datos persisten en el volumen pgdata)
+docker compose down -v                      # Parar y borrar la base de datos
+```
+
+### Salud del servicio
+`GET /api/health/` devuelve `{"status": "ok"}` y se usa como healthcheck del contenedor.
 
 ---
 
@@ -76,6 +142,8 @@ Django necesita una clave secreta y credenciales de base de datos para funcionar
 cp .env.example .env
 ```
 *(Puedes generar una nueva clave secreta para tu `.env` ejecutando: `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)*
+
+> ⚠️ Si vas a correr **sin Docker**, comenta el bloque de PostgreSQL en tu `.env` y descomenta el bloque de **SQLite** (`.env.example` trae PostgreSQL por defecto porque es lo que usa `docker-compose`).
 
 ### 5. Preparar la Base de Datos (Migraciones)
 Corre el siguiente comando para construir el esquema de la base de datos (por defecto usará SQLite local, modificable en tu `.env`):
