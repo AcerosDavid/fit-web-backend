@@ -1,3 +1,5 @@
+# La base de datos se configura con DATABASE_URL (Neon u otro proveedor).
+# Render pedirá el valor al crear el Blueprint (sync: false).
 services:
   - type: web
     name: fit-web-backend
@@ -11,16 +13,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
-        fromDatabase:
-          name: fit-web-db
-          property: connectionString
+        sync: false
       - key: WEB_CONCURRENCY
         value: "2"
     initialDeployHook: sh seed.sh
-
-databases:
-  - name: fit-web-db
-    plan: free
-    region: oregon
-    databaseName: fit_gym
-    user: fit_gym
