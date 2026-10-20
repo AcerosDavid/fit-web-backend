@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: fit-web-backend
+    runtime: docker
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health/
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: fit-web-db
+          property: connectionString
+      - key: WEB_CONCURRENCY
+        value: "2"
+    initialDeployHook: sh seed.sh
+
+databases:
+  - name: fit-web-db
+    plan: free
+    region: oregon
+    databaseName: fit_gym
+    user: fit_gym
