@@ -79,6 +79,7 @@ INSTALLED_APPS = [
     'attendance',
     'dashboard',
     'coaches',
+    'history',
 ]
 
 MIDDLEWARE = [
@@ -250,6 +251,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'attendance', 'description': 'Check-in / check-out de acceso'},
         {'name': 'dashboard', 'description': 'Métricas financieras y operativas'},
         {'name': 'coaches', 'description': 'Entrenadores (soft-delete)'},
+        {'name': 'history', 'description': 'Historial agregado de clientes (membresías, pagos y asistencias)'},
         {'name': 'health', 'description': 'Salud del servicio'},
     ],
     # Nombres explícitos para los enums "status" (Member y Membership)

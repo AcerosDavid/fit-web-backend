@@ -409,6 +409,64 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/history/:
+    get:
+      operationId: history_retrieve
+      description: Línea de tiempo unificada de membresías, pagos y asistencias de
+        todos los clientes, ordenada de más reciente a más antigua. Filtrable por
+        cliente, tipo de evento y rango de fechas, con paginación simple.
+      summary: Historial global del gimnasio
+      parameters:
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+        description: Fecha inicial de los eventos (YYYY-MM-DD)
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+        description: Fecha final de los eventos (YYYY-MM-DD)
+      - in: query
+        name: limit
+        schema:
+          type: integer
+        description: Máximo de eventos a devolver (default 100, max 500)
+      - in: query
+        name: member
+        schema:
+          type: integer
+        description: Filtra por ID de cliente
+      - in: query
+        name: offset
+        schema:
+          type: integer
+        description: Cantidad de eventos a omitir (default 0)
+      - in: query
+        name: type
+        schema:
+          type: string
+        description: 'Tipos separados por coma: membership, payment, attendance. Por
+          defecto devuelve todos.'
+      tags:
+      - history
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryEventList'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailMessage'
+          description: ''
   /api/members/:
     get:
       operationId: members_list
@@ -561,6 +619,54 @@ paths:
       - jwtAuth: []
       responses:
         '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailMessage'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailMessage'
+          description: ''
+  /api/members/{id}/history/:
+    get:
+      operationId: members_history_retrieve
+      description: Devuelve el perfil del cliente junto con sus membresías, pagos
+        y asistencias, más totales consolidados. Admite filtro opcional por rango
+        de fechas (aplicado a cada sección). Incluye clientes soft-deletados.
+      summary: Historial agregado de un cliente
+      parameters:
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+        description: Fecha inicial del historial (YYYY-MM-DD)
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+        description: Fecha final del historial (YYYY-MM-DD)
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - history
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemberHistory'
+          description: ''
+        '400':
           content:
             application/json:
               schema:
@@ -1389,6 +1495,30 @@ components:
       - member
       - member_details
       - registered_by
+    AttendanceHistory:
+      type: object
+      description: Asistencia con la duración de la visita en minutos.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        check_in:
+          type: string
+          format: date-time
+        check_out:
+          type: string
+          format: date-time
+          nullable: true
+        duration_minutes:
+          type: integer
+          nullable: true
+          readOnly: true
+        registered_by:
+          type: integer
+          nullable: true
+      required:
+      - duration_minutes
+      - id
     BlankEnum:
       enum:
       - ''
@@ -1506,6 +1636,93 @@ components:
         * `MALE` - Male
         * `FEMALE` - Female
         * `OTHER` - Other
+    HistoryEvent:
+      type: object
+      description: Evento unificado de la línea de tiempo global.
+      properties:
+        type:
+          $ref: '#/components/schemas/TypeEnum'
+        event:
+          type: string
+        date:
+          type: string
+          format: date-time
+        member:
+          $ref: '#/components/schemas/MemberBrief'
+        reference_id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: {}
+          nullable: true
+      required:
+      - date
+      - description
+      - event
+      - member
+      - reference_id
+      - title
+      - type
+    HistoryEventList:
+      type: object
+      description: Lista paginada de eventos del historial global.
+      properties:
+        count:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/HistoryEvent'
+      required:
+      - count
+      - results
+    HistorySummary:
+      type: object
+      description: Totales del historial de un cliente.
+      properties:
+        total_memberships:
+          type: integer
+        active_membership:
+          allOf:
+          - $ref: '#/components/schemas/MembershipHistory'
+          nullable: true
+        total_payments:
+          type: integer
+        total_paid:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+        total_attendances:
+          type: integer
+        first_attendance:
+          type: string
+          format: date-time
+          nullable: true
+        last_attendance:
+          type: string
+          format: date-time
+          nullable: true
+        member_since:
+          type: string
+          format: date-time
+      required:
+      - active_membership
+      - first_attendance
+      - last_attendance
+      - member_since
+      - total_attendances
+      - total_memberships
+      - total_paid
+      - total_payments
     LoginResponse:
       type: object
       description: Respuesta de POST /api/auth/login/.
@@ -1573,6 +1790,29 @@ components:
       - is_deleted
       - last_name
       - updated_at
+    MemberBrief:
+      type: object
+      description: Datos mínimos del cliente para la línea de tiempo global.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_name:
+          type: string
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 20
+        status:
+          $ref: '#/components/schemas/MemberStatusEnum'
+      required:
+      - email
+      - full_name
+      - id
     MemberCreateUpdate:
       type: object
       description: Serializer for creating and updating members.
@@ -1604,6 +1844,32 @@ components:
       - email
       - first_name
       - last_name
+    MemberHistory:
+      type: object
+      description: Historial agregado de un cliente.
+      properties:
+        member:
+          $ref: '#/components/schemas/Member'
+        summary:
+          $ref: '#/components/schemas/HistorySummary'
+        memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/MembershipHistory'
+        payments:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaymentHistory'
+        attendances:
+          type: array
+          items:
+            $ref: '#/components/schemas/AttendanceHistory'
+      required:
+      - attendances
+      - member
+      - memberships
+      - payments
+      - summary
     MemberStatusEnum:
       enum:
       - ACTIVE
@@ -1666,6 +1932,59 @@ components:
       - member_details
       - plan
       - plan_details
+      - updated_at
+    MembershipHistory:
+      type: object
+      description: Membresía con su plan y totales de pago asociados.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        plan:
+          type: integer
+        plan_details:
+          allOf:
+          - $ref: '#/components/schemas/Plan'
+          readOnly: true
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/MembershipStatusEnum'
+        is_valid:
+          type: boolean
+          readOnly: true
+        created_by:
+          type: integer
+          nullable: true
+        payment_count:
+          type: integer
+          readOnly: true
+        total_paid:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - end_date
+      - id
+      - is_valid
+      - payment_count
+      - plan
+      - plan_details
+      - total_paid
       - updated_at
     MembershipStatusEnum:
       enum:
@@ -1843,8 +2162,9 @@ components:
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
         duration_days:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
           description: Duration of the plan in days
         is_active:
           type: boolean
@@ -1933,6 +2253,46 @@ components:
       - membership_details
       - received_by
       - updated_at
+    PaymentHistory:
+      type: object
+      description: Pago con el nombre del plan de la membresía asociada.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        membership:
+          type: integer
+        membership_plan:
+          type: string
+          readOnly: true
+        amount:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        payment_date:
+          type: string
+          format: date-time
+        method:
+          $ref: '#/components/schemas/MethodEnum'
+        method_display:
+          type: string
+          readOnly: true
+        notes:
+          type: string
+        received_by:
+          type: integer
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - amount
+      - created_at
+      - id
+      - membership
+      - membership_plan
+      - method_display
     Plan:
       type: object
       properties:
@@ -1950,8 +2310,9 @@ components:
           pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
         duration_days:
           type: integer
-          maximum: 2147483647
+          maximum: 9223372036854775807
           minimum: 0
+          format: int64
           description: Duration of the plan in days
         is_active:
           type: boolean
@@ -2024,6 +2385,16 @@ components:
         * `ADMIN` - Administrador
         * `RECEPTIONIST` - Recepcionista
         * `COACH` - Entrenador
+    TypeEnum:
+      enum:
+      - membership
+      - payment
+      - attendance
+      type: string
+      description: |-
+        * `membership` - Membership
+        * `payment` - Payment
+        * `attendance` - Attendance
     User:
       type: object
       description: Serializer for reading user data. Never exposes the password.
@@ -2085,5 +2456,7 @@ tags:
   description: Métricas financieras y operativas
 - name: coaches
   description: Entrenadores (soft-delete)
+- name: history
+  description: Historial agregado de clientes (membresías, pagos y asistencias)
 - name: health
   description: Salud del servicio
