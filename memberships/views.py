@@ -20,7 +20,7 @@ class MembershipListCreateView(generics.ListCreateAPIView):
     GET /api/memberships/ -> List all memberships
     POST /api/memberships/ -> Assign a membership
     """
-    queryset = Membership.objects.all()
+    queryset = Membership.objects.select_related('member', 'plan')
     serializer_class = MembershipSerializer
     permission_classes = [IsAdminOrReceptionist]
 
@@ -42,6 +42,6 @@ class MembershipDetailView(generics.RetrieveUpdateAPIView):
     GET /api/memberships/{id}/ -> View membership details
     PUT/PATCH /api/memberships/{id}/ -> Update membership (e.g. change status to CANCELLED)
     """
-    queryset = Membership.objects.all()
+    queryset = Membership.objects.select_related('member', 'plan')
     serializer_class = MembershipSerializer
     permission_classes = [IsAdminOrReceptionist]

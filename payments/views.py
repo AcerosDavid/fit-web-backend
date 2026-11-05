@@ -24,7 +24,7 @@ class PaymentListCreateView(generics.ListCreateAPIView):
     GET /api/payments/ -> List all payments
     POST /api/payments/ -> Register a payment
     """
-    queryset = Payment.objects.all()
+    queryset = Payment.objects.select_related('membership__member', 'membership__plan')
     serializer_class = PaymentSerializer
     permission_classes = [IsAdminOrReceptionist]
 
@@ -51,6 +51,6 @@ class PaymentDetailView(generics.RetrieveUpdateAPIView):
     GET /api/payments/{id}/ -> View payment details
     PUT/PATCH /api/payments/{id}/ -> Update payment details (e.g. notes)
     """
-    queryset = Payment.objects.all()
+    queryset = Payment.objects.select_related('membership__member', 'membership__plan')
     serializer_class = PaymentSerializer
     permission_classes = [IsAdminOrReceptionist]
