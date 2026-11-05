@@ -162,7 +162,7 @@ class MemberHistoryView(APIView):
         active_membership = _annotate_memberships(
             member.memberships.filter(
                 status=Membership.Status.ACTIVE,
-                end_date__gte=timezone.now().date(),
+                end_date__gte=timezone.localdate(),
             ),
         ).order_by('-end_date').first()
 

@@ -28,7 +28,7 @@ class DashboardStatsView(APIView):
 
     def get(self, request):
         now = timezone.now()
-        today = now.date()
+        today = timezone.localdate(now)
         first_day_of_month = today.replace(day=1)
 
         # 1. Total de miembros activos

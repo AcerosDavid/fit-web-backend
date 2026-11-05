@@ -22,7 +22,7 @@ class Command(BaseCommand):
             return
 
         created_count = 0
-        now = timezone.now()
+        now = timezone.localtime()
         
         for i in range(7): # For the last 7 days
             day_date = now - timedelta(days=i)

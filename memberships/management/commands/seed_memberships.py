@@ -31,7 +31,7 @@ class Command(BaseCommand):
                 
                 # Assign start date anywhere from 30 days ago to today
                 days_ago = random.randint(0, 30)
-                start_date = timezone.now().date() - timedelta(days=days_ago)
+                start_date = timezone.localdate() - timedelta(days=days_ago)
                 
                 # Check if it doesn't already have one
                 if not Membership.objects.filter(member=member).exists():

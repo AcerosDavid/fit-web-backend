@@ -37,4 +37,4 @@ class Membership(models.Model):
 
     @property
     def is_valid(self):
-        return self.status == self.Status.ACTIVE and self.end_date >= timezone.now().date()
+        return self.status == self.Status.ACTIVE and self.end_date >= timezone.localdate()
