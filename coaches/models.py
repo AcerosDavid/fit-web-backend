@@ -54,6 +54,13 @@ class CoachAttendance(models.Model):
 
     class Meta:
         ordering = ['-check_in']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['coach'],
+                condition=models.Q(check_out__isnull=True),
+                name='unique_open_attendance_per_coach',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.coach.full_name} - In: {self.check_in.strftime('%Y-%m-%d %H:%M')}"

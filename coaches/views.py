@@ -1,4 +1,3 @@
-from django.utils import timezone
 from django.utils.dateparse import parse_date
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -8,6 +7,7 @@ from drf_spectacular.utils import (
 from rest_framework import generics, status, views
 from rest_framework.response import Response
 
+from attendance.services import check_out_time, create_attendance, get_open_attendance
 from config.serializers import DetailMessageSerializer, ErrorMessageSerializer
 from members.views import IsAdminOrReceptionist
 from .models import Coach, CoachAttendance
@@ -189,9 +189,7 @@ class CoachCheckInView(views.APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        active_attendance = CoachAttendance.objects.filter(
-            coach=coach, check_out__isnull=True,
-        ).first()
+        active_attendance = get_open_attendance(CoachAttendance.objects.filter(coach=coach))
 
         if active_attendance:
             return Response(
@@ -202,11 +200,12 @@ class CoachCheckInView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        attendance = CoachAttendance.objects.create(
-            coach=coach,
-            check_in=timezone.now(),
-            registered_by=request.user,
-        )
+        attendance = create_attendance(CoachAttendance, coach=coach, registered_by=request.user)
+        if attendance is None:
+            return Response(
+                {'error': 'Coach is already checked in'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(
             CoachAttendanceSerializer(attendance).data,
             status=status.HTTP_201_CREATED,
@@ -237,6 +236,6 @@ class CoachCheckOutView(views.APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        attendance.check_out = timezone.now()
+        attendance.check_out = check_out_time(attendance)
         attendance.save(update_fields=['check_out'])
         return Response(CoachAttendanceSerializer(attendance).data)

@@ -13,6 +13,13 @@ class Attendance(models.Model):
 
     class Meta:
         ordering = ['-check_in']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['member'],
+                condition=models.Q(check_out__isnull=True),
+                name='unique_open_attendance_per_member',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.member.full_name} - In: {self.check_in.strftime('%Y-%m-%d %H:%M')}"

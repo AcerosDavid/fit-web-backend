@@ -1,7 +1,8 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import generics, status, views
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
-from django.utils import timezone
+from django.utils.dateparse import parse_date
 
 from coaches.models import Coach, CoachAttendance
 from coaches.serializers import CoachAttendanceSerializer, CoachSerializer
@@ -16,6 +17,7 @@ from .serializers import (
     ScanResultSerializer,
 )
 from members.views import IsAdminOrReceptionist
+from .services import check_out_time, create_attendance, get_open_attendance
 
 MEMBER_QR_PREFIX = 'FIT-M-'
 COACH_QR_PREFIX = 'FIT-C-'
@@ -62,9 +64,17 @@ class AttendanceListView(generics.ListAPIView):
         date_param = self.request.query_params.get('date') # e.g. YYYY-MM-DD
         
         if member_id:
+            if not member_id.isdigit():
+                raise ValidationError({'member': 'Must be an integer.'})
             queryset = queryset.filter(member_id=member_id)
         if date_param:
-            queryset = queryset.filter(check_in__date=date_param)
+            try:
+                parsed_date = parse_date(date_param)
+            except ValueError:
+                parsed_date = None
+            if parsed_date is None:
+                raise ValidationError({'date': 'Invalid format. Use YYYY-MM-DD.'})
+            queryset = queryset.filter(check_in__date=parsed_date)
             
         return queryset
 
@@ -101,10 +111,7 @@ class CheckInView(views.APIView):
                 return Response({"error": "Member not found or inactive"}, status=status.HTTP_404_NOT_FOUND)
             
             # Check if already checked in and not checked out
-            active_attendance = Attendance.objects.filter(
-                member=member, 
-                check_out__isnull=True
-            ).first()
+            active_attendance = get_open_attendance(Attendance.objects.filter(member=member))
             
             if active_attendance:
                 return Response({
@@ -112,11 +119,9 @@ class CheckInView(views.APIView):
                     "attendance_id": active_attendance.id
                 }, status=status.HTTP_400_BAD_REQUEST)
                 
-            attendance = Attendance.objects.create(
-                member=member,
-                check_in=timezone.now(),
-                registered_by=request.user
-            )
+            attendance = create_attendance(Attendance, member=member, registered_by=request.user)
+            if attendance is None:
+                return Response({"error": "Member is already checked in"}, status=status.HTTP_400_BAD_REQUEST)
             
             return Response(AttendanceSerializer(attendance).data, status=status.HTTP_201_CREATED)
             
@@ -138,8 +143,8 @@ class CheckOutView(views.APIView):
     def post(self, request, pk):
         try:
             attendance = Attendance.objects.get(pk=pk, check_out__isnull=True)
-            attendance.check_out = timezone.now()
-            attendance.save()
+            attendance.check_out = check_out_time(attendance)
+            attendance.save(update_fields=['check_out'])
             return Response(AttendanceSerializer(attendance).data)
         except Attendance.DoesNotExist:
             return Response({"error": "Active attendance not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -198,21 +203,20 @@ class ScanQrView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        active_attendance = Attendance.objects.filter(
-            member=member, check_out__isnull=True,
-        ).first()
+        active_attendance = get_open_attendance(Attendance.objects.filter(member=member))
 
         if active_attendance:
-            active_attendance.check_out = timezone.now()
+            active_attendance.check_out = check_out_time(active_attendance)
             active_attendance.save(update_fields=['check_out'])
             attendance = active_attendance
             action = 'check-out'
         else:
-            attendance = Attendance.objects.create(
-                member=member,
-                check_in=timezone.now(),
-                registered_by=request.user,
-            )
+            attendance = create_attendance(Attendance, member=member, registered_by=request.user)
+            if attendance is None:
+                return Response(
+                    {'error': 'Member is already checked in.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             action = 'check-in'
 
         message = (
@@ -245,21 +249,20 @@ class ScanQrView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        active_attendance = CoachAttendance.objects.filter(
-            coach=coach, check_out__isnull=True,
-        ).first()
+        active_attendance = get_open_attendance(CoachAttendance.objects.filter(coach=coach))
 
         if active_attendance:
-            active_attendance.check_out = timezone.now()
+            active_attendance.check_out = check_out_time(active_attendance)
             active_attendance.save(update_fields=['check_out'])
             attendance = active_attendance
             action = 'check-out'
         else:
-            attendance = CoachAttendance.objects.create(
-                coach=coach,
-                check_in=timezone.now(),
-                registered_by=request.user,
-            )
+            attendance = create_attendance(CoachAttendance, coach=coach, registered_by=request.user)
+            if attendance is None:
+                return Response(
+                    {'error': 'Coach is already checked in.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             action = 'check-in'
 
         message = (
