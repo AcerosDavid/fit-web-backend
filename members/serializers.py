@@ -6,6 +6,7 @@ class MemberSerializer(serializers.ModelSerializer):
     """Serializer for reading member data."""
 
     full_name = serializers.CharField(read_only=True)
+    qr_code = serializers.CharField(read_only=True)
     is_deleted = serializers.BooleanField(read_only=True)
 
     class Meta:
@@ -15,6 +16,7 @@ class MemberSerializer(serializers.ModelSerializer):
             "first_name",
             "last_name",
             "full_name",
+            "qr_code",
             "email",
             "phone",
             "date_of_birth",

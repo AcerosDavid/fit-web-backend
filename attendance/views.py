@@ -2,11 +2,36 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import generics, status, views
 from rest_framework.response import Response
 from django.utils import timezone
+
+from coaches.models import Coach, CoachAttendance
+from coaches.serializers import CoachAttendanceSerializer, CoachSerializer
 from config.serializers import ErrorMessageSerializer
 from .models import Attendance
 from members.models import Member
-from .serializers import AttendanceSerializer, CheckInSerializer
+from members.serializers import MemberSerializer
+from .serializers import (
+    AttendanceSerializer,
+    CheckInSerializer,
+    ScanRequestSerializer,
+    ScanResultSerializer,
+)
 from members.views import IsAdminOrReceptionist
+
+MEMBER_QR_PREFIX = 'FIT-M-'
+COACH_QR_PREFIX = 'FIT-C-'
+
+
+def _resolve_qr_code(raw_code):
+    """Devuelve (tipo, id) a partir del código QR, o (None, None)."""
+    code = (raw_code or '').strip().upper()
+
+    for prefix, kind in ((MEMBER_QR_PREFIX, 'member'), (COACH_QR_PREFIX, 'coach')):
+        if code.startswith(prefix):
+            value = code[len(prefix):]
+            if value.isdigit():
+                return kind, int(value)
+            return None, None
+    return None, None
 
 @extend_schema(
     tags=['attendance'],
@@ -27,7 +52,7 @@ class AttendanceListView(generics.ListAPIView):
     """
     GET /api/attendance/ -> List all attendances
     """
-    queryset = Attendance.objects.all()
+    queryset = Attendance.objects.select_related('member')
     serializer_class = AttendanceSerializer
     permission_classes = [IsAdminOrReceptionist]
 
@@ -118,3 +143,136 @@ class CheckOutView(views.APIView):
             return Response(AttendanceSerializer(attendance).data)
         except Attendance.DoesNotExist:
             return Response({"error": "Active attendance not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+@extend_schema(
+    tags=['attendance'],
+    summary='Escanear QR y registrar asistencia',
+    description=(
+        'Identifica a un cliente o entrenador por su código QR '
+        '(`FIT-M-<id>` o `FIT-C-<id>`) y registra automáticamente la entrada '
+        'si no tiene una asistencia abierta, o la salida si ya está dentro.'
+    ),
+    request=ScanRequestSerializer,
+    responses={
+        200: ScanResultSerializer,
+        400: ErrorMessageSerializer,
+        404: ErrorMessageSerializer,
+    },
+)
+class ScanQrView(views.APIView):
+    """
+    POST /api/attendance/scan/
+    Body: { "code": "FIT-M-1" } o { "code": "FIT-C-3" }
+    """
+    permission_classes = [IsAdminOrReceptionist]
+
+    def post(self, request):
+        serializer = ScanRequestSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        kind, entity_id = _resolve_qr_code(serializer.validated_data['code'])
+        if kind is None:
+            return Response(
+                {'error': 'Invalid QR code.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if kind == 'member':
+            return self._scan_member(request, entity_id)
+        return self._scan_coach(request, entity_id)
+
+    def _scan_member(self, request, member_id):
+        try:
+            member = Member.objects.get(pk=member_id)
+        except Member.DoesNotExist:
+            return Response(
+                {'error': 'Member not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if member.status != Member.Status.ACTIVE:
+            return Response(
+                {'error': 'Member is not active.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        active_attendance = Attendance.objects.filter(
+            member=member, check_out__isnull=True,
+        ).first()
+
+        if active_attendance:
+            active_attendance.check_out = timezone.now()
+            active_attendance.save(update_fields=['check_out'])
+            attendance = active_attendance
+            action = 'check-out'
+        else:
+            attendance = Attendance.objects.create(
+                member=member,
+                check_in=timezone.now(),
+                registered_by=request.user,
+            )
+            action = 'check-in'
+
+        message = (
+            f"Salida registrada: {member.full_name}"
+            if action == 'check-out'
+            else f"Entrada registrada: {member.full_name}"
+        )
+
+        return Response({
+            'type': 'member',
+            'action': action,
+            'qr_code': member.qr_code,
+            'person': MemberSerializer(member).data,
+            'attendance': AttendanceSerializer(attendance).data,
+            'message': message,
+        })
+
+    def _scan_coach(self, request, coach_id):
+        try:
+            coach = Coach.objects.get(pk=coach_id)
+        except Coach.DoesNotExist:
+            return Response(
+                {'error': 'Coach not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not coach.is_active:
+            return Response(
+                {'error': 'Coach is not active.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        active_attendance = CoachAttendance.objects.filter(
+            coach=coach, check_out__isnull=True,
+        ).first()
+
+        if active_attendance:
+            active_attendance.check_out = timezone.now()
+            active_attendance.save(update_fields=['check_out'])
+            attendance = active_attendance
+            action = 'check-out'
+        else:
+            attendance = CoachAttendance.objects.create(
+                coach=coach,
+                check_in=timezone.now(),
+                registered_by=request.user,
+            )
+            action = 'check-in'
+
+        message = (
+            f"Salida registrada: {coach.full_name}"
+            if action == 'check-out'
+            else f"Entrada registrada: {coach.full_name}"
+        )
+
+        return Response({
+            'type': 'coach',
+            'action': action,
+            'qr_code': coach.qr_code,
+            'person': CoachSerializer(coach).data,
+            'attendance': CoachAttendanceSerializer(attendance).data,
+            'message': message,
+        })

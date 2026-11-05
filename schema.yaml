@@ -108,6 +108,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorMessage'
           description: ''
+  /api/attendance/scan/:
+    post:
+      operationId: attendance_scan_create
+      description: Identifica a un cliente o entrenador por su código QR (`FIT-M-<id>`
+        o `FIT-C-<id>`) y registra automáticamente la entrada si no tiene una asistencia
+        abierta, o la salida si ya está dentro.
+      summary: Escanear QR y registrar asistencia
+      tags:
+      - attendance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ScanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ScanRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanResult'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+          description: ''
   /api/auth/login/:
     post:
       operationId: auth_login_create
@@ -150,7 +192,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/Me'
           description: ''
     put:
       operationId: auth_me_update
@@ -163,13 +205,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/Me'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/Me'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/Me'
         required: true
       security:
       - jwtAuth: []
@@ -178,7 +220,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/Me'
           description: ''
     patch:
       operationId: auth_me_partial_update
@@ -191,13 +233,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedUser'
+              $ref: '#/components/schemas/PatchedMe'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedUser'
+              $ref: '#/components/schemas/PatchedMe'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedUser'
+              $ref: '#/components/schemas/PatchedMe'
       security:
       - jwtAuth: []
       responses:
@@ -205,7 +247,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/Me'
           description: ''
   /api/auth/refresh/:
     post:
@@ -376,6 +418,117 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/coaches/{id}/check-in/:
+    post:
+      operationId: coaches_check_in_create
+      description: Registra la entrada del entrenador al gimnasio. Devuelve 404 si
+        el entrenador no existe o está inactivo, y 400 si ya tiene una entrada abierta.
+      summary: Registrar entrada de un entrenador
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - coaches
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoachAttendance'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+          description: ''
+  /api/coaches/{id}/check-out/:
+    post:
+      operationId: coaches_check_out_create
+      description: Cierra la asistencia abierta del entrenador. Devuelve 404 si no
+        hay entrada abierta.
+      summary: Registrar salida de un entrenador
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - coaches
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoachAttendance'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorMessage'
+          description: ''
+  /api/coaches/{id}/history/:
+    get:
+      operationId: coaches_history_retrieve
+      description: Devuelve el perfil del entrenador junto con su historial de entradas/salidas
+        y totales. Admite filtro opcional por rango de fechas.
+      summary: Historial de asistencia de un entrenador
+      parameters:
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+        description: Fecha inicial del historial (YYYY-MM-DD)
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+        description: Fecha final del historial (YYYY-MM-DD)
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - coaches
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CoachHistory'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailMessage'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailMessage'
+          description: ''
   /api/dashboard/:
     get:
       operationId: dashboard_retrieve
@@ -1395,13 +1548,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/UserUpdate'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/UserUpdate'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/User'
+              $ref: '#/components/schemas/UserUpdate'
         required: true
       security:
       - jwtAuth: []
@@ -1410,7 +1563,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/UserUpdate'
           description: ''
     patch:
       operationId: users_partial_update
@@ -1428,13 +1581,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PatchedUser'
+              $ref: '#/components/schemas/PatchedUserUpdate'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PatchedUser'
+              $ref: '#/components/schemas/PatchedUserUpdate'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PatchedUser'
+              $ref: '#/components/schemas/PatchedUserUpdate'
       security:
       - jwtAuth: []
       responses:
@@ -1442,7 +1595,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/UserUpdate'
           description: ''
     delete:
       operationId: users_destroy
@@ -1463,6 +1616,14 @@ paths:
           description: No response body
 components:
   schemas:
+    ActionEnum:
+      enum:
+      - check-in
+      - check-out
+      type: string
+      description: |-
+        * `check-in` - check-in
+        * `check-out` - check-out
     Attendance:
       type: object
       properties:
@@ -1535,12 +1696,19 @@ components:
         id:
           type: integer
           readOnly: true
+        user:
+          type: integer
+          nullable: true
+          description: Usuario de sistema asociado (opcional)
         first_name:
           type: string
           maxLength: 100
         last_name:
           type: string
           maxLength: 100
+        qr_code:
+          type: string
+          readOnly: true
         specialty:
           type: string
           description: 'Ej: Pesas, Crossfit, Zumba'
@@ -1560,17 +1728,89 @@ components:
           type: string
           format: date-time
           readOnly: true
-        user:
-          type: integer
-          nullable: true
-          description: Usuario de sistema asociado (opcional)
       required:
       - created_at
       - first_name
       - id
       - last_name
+      - qr_code
       - specialty
       - updated_at
+    CoachAttendance:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        coach:
+          type: integer
+          readOnly: true
+        check_in:
+          type: string
+          format: date-time
+          readOnly: true
+        check_out:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        duration_minutes:
+          type: integer
+          readOnly: true
+          nullable: true
+        registered_by:
+          type: integer
+          readOnly: true
+          nullable: true
+      required:
+      - check_in
+      - check_out
+      - coach
+      - duration_minutes
+      - id
+      - registered_by
+    CoachHistory:
+      type: object
+      properties:
+        coach:
+          $ref: '#/components/schemas/Coach'
+        summary:
+          $ref: '#/components/schemas/CoachHistorySummary'
+        attendances:
+          type: array
+          items:
+            $ref: '#/components/schemas/CoachAttendance'
+      required:
+      - attendances
+      - coach
+      - summary
+    CoachHistorySummary:
+      type: object
+      properties:
+        total_attendances:
+          type: integer
+        total_minutes:
+          type: integer
+        currently_inside:
+          type: boolean
+        open_attendance_id:
+          type: integer
+          nullable: true
+        first_attendance:
+          type: string
+          format: date-time
+          nullable: true
+        last_attendance:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - currently_inside
+      - first_attendance
+      - last_attendance
+      - open_attendance_id
+      - total_attendances
+      - total_minutes
     CustomTokenObtainPair:
       type: object
       description: |-
@@ -1641,7 +1881,7 @@ components:
       description: Evento unificado de la línea de tiempo global.
       properties:
         type:
-          $ref: '#/components/schemas/TypeEnum'
+          $ref: '#/components/schemas/HistoryEventTypeEnum'
         event:
           type: string
         date:
@@ -1685,6 +1925,16 @@ components:
       required:
       - count
       - results
+    HistoryEventTypeEnum:
+      enum:
+      - membership
+      - payment
+      - attendance
+      type: string
+      description: |-
+        * `membership` - Membership
+        * `payment` - Payment
+        * `attendance` - Attendance
     HistorySummary:
       type: object
       description: Totales del historial de un cliente.
@@ -1737,6 +1987,48 @@ components:
       - access
       - refresh
       - user
+    Me:
+      type: object
+      description: 'Datos del propio usuario: edita su perfil, nunca rol ni estado.'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+      required:
+      - id
+      - is_active
+      - role
+      - username
     Member:
       type: object
       description: Serializer for reading member data.
@@ -1751,6 +2043,9 @@ components:
           type: string
           maxLength: 100
         full_name:
+          type: string
+          readOnly: true
+        qr_code:
           type: string
           readOnly: true
         email:
@@ -1789,6 +2084,7 @@ components:
       - id
       - is_deleted
       - last_name
+      - qr_code
       - updated_at
     MemberBrief:
       type: object
@@ -2012,12 +2308,19 @@ components:
         id:
           type: integer
           readOnly: true
+        user:
+          type: integer
+          nullable: true
+          description: Usuario de sistema asociado (opcional)
         first_name:
           type: string
           maxLength: 100
         last_name:
           type: string
           maxLength: 100
+        qr_code:
+          type: string
+          readOnly: true
         specialty:
           type: string
           description: 'Ej: Pesas, Crossfit, Zumba'
@@ -2037,10 +2340,43 @@ components:
           type: string
           format: date-time
           readOnly: true
-        user:
+    PatchedMe:
+      type: object
+      description: 'Datos del propio usuario: edita su perfil, nunca rol ni estado.'
+      properties:
+        id:
           type: integer
-          nullable: true
-          description: Usuario de sistema asociado (opcional)
+          readOnly: true
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
     PatchedMemberCreateUpdate:
       type: object
       description: Serializer for creating and updating members.
@@ -2176,13 +2512,10 @@ components:
           type: string
           format: date-time
           readOnly: true
-    PatchedUser:
+    PatchedUserUpdate:
       type: object
-      description: Serializer for reading user data. Never exposes the password.
+      description: Serializer for updating a user from the admin panel.
       properties:
-        id:
-          type: integer
-          readOnly: true
         username:
           type: string
           description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
@@ -2385,16 +2718,46 @@ components:
         * `ADMIN` - Administrador
         * `RECEPTIONIST` - Recepcionista
         * `COACH` - Entrenador
-    TypeEnum:
-      enum:
-      - membership
-      - payment
+    ScanRequest:
+      type: object
+      properties:
+        code:
+          type: string
+          maxLength: 50
+      required:
+      - code
+    ScanResult:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/ScanResultTypeEnum'
+        action:
+          $ref: '#/components/schemas/ActionEnum'
+        qr_code:
+          type: string
+        person:
+          type: object
+          additionalProperties: {}
+        attendance:
+          type: object
+          additionalProperties: {}
+        message:
+          type: string
+      required:
+      - action
       - attendance
+      - message
+      - person
+      - qr_code
+      - type
+    ScanResultTypeEnum:
+      enum:
+      - member
+      - coach
       type: string
       description: |-
-        * `membership` - Membership
-        * `payment` - Payment
-        * `attendance` - Attendance
+        * `member` - member
+        * `coach` - coach
     User:
       type: object
       description: Serializer for reading user data. Never exposes the password.
@@ -2431,6 +2794,39 @@ components:
             this instead of deleting accounts.
       required:
       - id
+      - username
+    UserUpdate:
+      type: object
+      description: Serializer for updating a user from the admin panel.
+      properties:
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          title: Email address
+          oneOf:
+          - type: string
+            format: email
+            maxLength: 254
+          - type: string
+            maxLength: 0
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        role:
+          $ref: '#/components/schemas/RoleEnum'
+        is_active:
+          type: boolean
+          title: Active
+          description: Designates whether this user should be treated as active. Unselect
+            this instead of deleting accounts.
+      required:
       - username
   securitySchemes:
     jwtAuth:

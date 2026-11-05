@@ -60,6 +60,11 @@ class Member(models.Model):
         return f"{self.first_name} {self.last_name}"
 
     @property
+    def qr_code(self):
+        """Código que se codifica en el QR de acceso del cliente."""
+        return f"FIT-M-{self.id}"
+
+    @property
     def is_deleted(self):
         return self.deleted_at is not None
 
