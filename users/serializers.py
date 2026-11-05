@@ -24,9 +24,38 @@ class RegisterUserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Use set_password to hash the password correctly
         user = User(**validated_data)
+        user.is_staff = user.role == User.Role.ADMIN
         user.set_password(validated_data["password"])
         user.save()
         return user
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating a user from the admin panel."""
+
+    class Meta:
+        model = User
+        fields = (
+            "username", "email", "first_name", "last_name", "role", "is_active",
+        )
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        instance.is_staff = instance.is_superuser or instance.role == User.Role.ADMIN
+        instance.save(update_fields=["is_staff"])
+        return instance
+
+
+class MeSerializer(serializers.ModelSerializer):
+    """Datos del propio usuario: edita su perfil, nunca rol ni estado."""
+
+    class Meta:
+        model = User
+        fields = (
+            "id", "username", "email", "first_name", "last_name", "role",
+            "is_active",
+        )
+        read_only_fields = ("id", "role", "is_active")
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

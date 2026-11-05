@@ -5,9 +5,11 @@ from .models import User
 from .serializers import (
     CustomTokenObtainPairSerializer,
     LoginResponseSerializer,
+    MeSerializer,
     RefreshResponseSerializer,
     RegisterUserSerializer,
     UserSerializer,
+    UserUpdateSerializer,
 )
 
 
@@ -70,7 +72,7 @@ class MeView(generics.RetrieveUpdateAPIView):
 
     Equivalent to Laravel's: Auth::user()
     """
-    serializer_class = UserSerializer
+    serializer_class = MeSerializer
 
     def get_object(self):
         return self.request.user
@@ -110,3 +112,8 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = (permissions.IsAdminUser,)
+
+    def get_serializer_class(self):
+        if self.request.method == "GET":
+            return UserSerializer
+        return UserUpdateSerializer
