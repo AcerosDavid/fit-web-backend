@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
+
 
 class Coach(models.Model):
     user = models.OneToOneField(
@@ -30,3 +32,34 @@ class Coach(models.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+    @property
+    def qr_code(self):
+        """Código que se codifica en el QR de acceso del entrenador."""
+        return f"FIT-C-{self.id}"
+
+
+class CoachAttendance(models.Model):
+    coach = models.ForeignKey(Coach, on_delete=models.CASCADE, related_name='attendances')
+    check_in = models.DateTimeField(default=timezone.now)
+    check_out = models.DateTimeField(null=True, blank=True)
+
+    # Audit trail
+    registered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='registered_coach_attendances',
+    )
+
+    class Meta:
+        ordering = ['-check_in']
+
+    def __str__(self):
+        return f"{self.coach.full_name} - In: {self.check_in.strftime('%Y-%m-%d %H:%M')}"
+
+    @property
+    def duration_minutes(self):
+        if self.check_out and self.check_in:
+            return int((self.check_out - self.check_in).total_seconds() // 60)
+        return None
