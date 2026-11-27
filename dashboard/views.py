@@ -35,8 +35,9 @@ class DashboardStatsView(APIView):
         active_members_count = Member.objects.filter(status=Member.Status.ACTIVE).count()
 
         # 2. Ingresos del mes actual
+        #    Se compara por fecha (__date) para evitar datetime naive con USE_TZ.
         monthly_revenue_agg = Payment.objects.filter(
-            payment_date__gte=first_day_of_month
+            payment_date__date__gte=first_day_of_month
         ).aggregate(total=Sum('amount'))
         monthly_revenue = monthly_revenue_agg['total'] or 0
 
