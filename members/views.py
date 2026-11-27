@@ -15,7 +15,12 @@ class IsAdminOrReceptionist(permissions.BasePermission):
 
     def has_permission(self, request, view):
         from users.models import User
-        return request.user.role in (User.Role.ADMIN, User.Role.RECEPTIONIST)
+        user = request.user
+        if not user or not user.is_authenticated:
+            # Anónimos: nunca acceden (DRF responde 401 con las clases de
+            # autenticación por defecto en lugar de lanzar AttributeError).
+            return False
+        return user.role in (User.Role.ADMIN, User.Role.RECEPTIONIST)
 
 
 @extend_schema(
