@@ -9,6 +9,8 @@ from rest_framework.response import Response
 
 from attendance.services import check_out_time, create_attendance, get_open_attendance
 from config.serializers import DetailMessageSerializer, ErrorMessageSerializer
+from core.persona import Entrenador
+from core.reportes import registrar_evento_asistencia
 from members.views import IsAdminOrReceptionist
 from .models import Coach, CoachAttendance
 from .serializers import (
@@ -16,6 +18,13 @@ from .serializers import (
     CoachHistorySerializer,
     CoachSerializer,
 )
+
+
+def _log_coach_attendance(coach, action, attendance):
+    """Registra el evento en el log diario de archivos (core.reportes)."""
+    momento = attendance.check_out if action == 'check-out' else attendance.check_in
+    persona = Entrenador.from_model(coach)
+    registrar_evento_asistencia(persona.registrar_asistencia(action, momento))
 
 
 def _parse_date_param(request, name):
@@ -206,6 +215,7 @@ class CoachCheckInView(views.APIView):
                 {'error': 'Coach is already checked in'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        _log_coach_attendance(coach, 'check-in', attendance)
         return Response(
             CoachAttendanceSerializer(attendance).data,
             status=status.HTTP_201_CREATED,
@@ -238,4 +248,5 @@ class CoachCheckOutView(views.APIView):
 
         attendance.check_out = check_out_time(attendance)
         attendance.save(update_fields=['check_out'])
+        _log_coach_attendance(attendance.coach, 'check-out', attendance)
         return Response(CoachAttendanceSerializer(attendance).data)

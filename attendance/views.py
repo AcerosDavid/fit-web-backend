@@ -18,9 +18,17 @@ from .serializers import (
 )
 from members.views import IsAdminOrReceptionist
 from .services import check_out_time, create_attendance, get_open_attendance
+from core.persona import Entrenador, Miembro
+from core.reportes import registrar_evento_asistencia
 
 MEMBER_QR_PREFIX = 'FIT-M-'
 COACH_QR_PREFIX = 'FIT-C-'
+
+
+def _log_attendance(persona, action, attendance):
+    """Registra el evento en el log diario de archivos (core.reportes)."""
+    momento = attendance.check_out if action == 'check-out' else attendance.check_in
+    registrar_evento_asistencia(persona.registrar_asistencia(action, momento))
 
 
 def _resolve_qr_code(raw_code):
@@ -122,7 +130,8 @@ class CheckInView(views.APIView):
             attendance = create_attendance(Attendance, member=member, registered_by=request.user)
             if attendance is None:
                 return Response({"error": "Member is already checked in"}, status=status.HTTP_400_BAD_REQUEST)
-            
+
+            _log_attendance(Miembro.from_model(member), 'check-in', attendance)
             return Response(AttendanceSerializer(attendance).data, status=status.HTTP_201_CREATED)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -145,6 +154,7 @@ class CheckOutView(views.APIView):
             attendance = Attendance.objects.get(pk=pk, check_out__isnull=True)
             attendance.check_out = check_out_time(attendance)
             attendance.save(update_fields=['check_out'])
+            _log_attendance(Miembro.from_model(attendance.member), 'check-out', attendance)
             return Response(AttendanceSerializer(attendance).data)
         except Attendance.DoesNotExist:
             return Response({"error": "Active attendance not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -219,6 +229,8 @@ class ScanQrView(views.APIView):
                 )
             action = 'check-in'
 
+        _log_attendance(Miembro.from_model(member), action, attendance)
+
         message = (
             f"Salida registrada: {member.full_name}"
             if action == 'check-out'
@@ -264,6 +276,8 @@ class ScanQrView(views.APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             action = 'check-in'
+
+        _log_attendance(Entrenador.from_model(coach), action, attendance)
 
         message = (
             f"Salida registrada: {coach.full_name}"
