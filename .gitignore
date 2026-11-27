@@ -21,6 +21,10 @@ db.sqlite3-journal
 media/
 staticfiles/
 
+# Reportes y logs generados en runtime (core/reportes.py)
+logs/
+reportes/
+
 # Editor / IDE
 .vscode/
 .idea/
