@@ -1,0 +1,117 @@
+FitWeb Backend — Evidencia de funcionamiento
+=============================================
+Fecha (sistema): 2026-11-26T21:20:28-05:00
+Python: Python 3.12.3
+Django: 6.1.1
+Comando: python manage.py test -v 2
+Base de datos de pruebas: SQLite (se crea y destruye automáticamente)
+
+Salida de la ejecución:
+------------------------
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Found 53 test(s).
+Operations to perform:
+  Synchronize unmigrated apps: corsheaders, drf_spectacular, drf_spectacular_sidecar, history, messages, rest_framework, staticfiles
+  Apply all migrations: admin, attendance, auth, coaches, contenttypes, members, memberships, payments, plans, sessions, users
+Synchronizing apps without migrations:
+  Creating tables...
+    Running deferred SQL...
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying users.0001_initial... OK
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying members.0001_initial... OK
+  Applying attendance.0001_initial... OK
+  Applying attendance.0002_close_duplicate_open_attendances... OK
+  Applying attendance.0003_attendance_unique_open_attendance_per_member... OK
+  Applying coaches.0001_initial... OK
+  Applying coaches.0002_coachattendance... OK
+  Applying coaches.0003_close_duplicate_open_coach_attendances... OK
+  Applying coaches.0004_coachattendance_unique_open_attendance_per_coach... OK
+  Applying plans.0001_initial... OK
+  Applying memberships.0001_initial... OK
+  Applying payments.0001_initial... OK
+  Applying sessions.0001_initial... OK
+  Applying users.0002_alter_user_role...test_date_filter_uses_local_day (attendance.tests.AttendanceListTests.test_date_filter_uses_local_day) ... ok
+test_invalid_date_filter_returns_400 (attendance.tests.AttendanceListTests.test_invalid_date_filter_returns_400) ... ok
+test_invalid_member_filter_returns_400 (attendance.tests.AttendanceListTests.test_invalid_member_filter_returns_400) ... ok
+test_closes_attendance_left_open_on_previous_day (attendance.tests.CheckInTests.test_closes_attendance_left_open_on_previous_day) ... ok
+test_creates_open_attendance (attendance.tests.CheckInTests.test_creates_open_attendance) ... ok
+test_database_allows_one_open_attendance_per_member (attendance.tests.CheckInTests.test_database_allows_one_open_attendance_per_member) ... ok
+test_rejects_member_already_inside (attendance.tests.CheckInTests.test_rejects_member_already_inside) ... ok
+test_attendance_from_previous_day_closes_at_end_of_that_day (attendance.tests.CheckOutTests.test_attendance_from_previous_day_closes_at_end_of_that_day) ... ok
+test_closes_open_attendance (attendance.tests.CheckOutTests.test_closes_open_attendance) ... ok
+test_check_in_closes_attendance_left_open_on_previous_day (attendance.tests.CoachAttendanceTests.test_check_in_closes_attendance_left_open_on_previous_day) ... ok
+test_database_allows_one_open_attendance_per_coach (attendance.tests.CoachAttendanceTests.test_database_allows_one_open_attendance_per_coach) ... ok
+test_coach_scan_with_attendance_left_open_yesterday_checks_in (attendance.tests.ScanQrTests.test_coach_scan_with_attendance_left_open_yesterday_checks_in) ... ok
+test_member_scan_toggles_check_in_and_check_out (attendance.tests.ScanQrTests.test_member_scan_toggles_check_in_and_check_out) ... ok
+test_member_scan_with_attendance_left_open_yesterday_checks_in (attendance.tests.ScanQrTests.test_member_scan_with_attendance_left_open_yesterday_checks_in) ... ok
+test_check_in_and_check_out_flow (coaches.tests.CoachApiTests.test_check_in_and_check_out_flow) ... ok
+test_coach_history_aggregates_attendance (coaches.tests.CoachApiTests.test_coach_history_aggregates_attendance) ... ok
+test_create_and_list_coaches (coaches.tests.CoachApiTests.test_create_and_list_coaches) ... ok
+test_delete_coach_is_a_soft_delete (coaches.tests.CoachApiTests.test_delete_coach_is_a_soft_delete) ... ok
+test_dashboard_is_restricted_to_admin_or_receptionist (dashboard.tests.DashboardStatsTests.test_dashboard_is_restricted_to_admin_or_receptionist) ... ok
+test_metrics_aggregate_created_data (dashboard.tests.DashboardStatsTests.test_metrics_aggregate_created_data) ... ok
+test_metrics_are_empty_without_business_activity (dashboard.tests.DashboardStatsTests.test_metrics_are_empty_without_business_activity)
+Solo existe el cliente del setUp: no hay cobros, visitas ni vencimientos. ... ok
+test_filter_by_event_type (history.tests.GlobalHistoryTests.test_filter_by_event_type) ... ok
+test_pagination_with_limit_and_offset (history.tests.GlobalHistoryTests.test_pagination_with_limit_and_offset) ... ok
+test_rejects_invalid_query_params (history.tests.GlobalHistoryTests.test_rejects_invalid_query_params) ... ok
+test_timeline_is_sorted_newest_first (history.tests.GlobalHistoryTests.test_timeline_is_sorted_newest_first) ... ok
+test_history_filters_by_date_range (history.tests.MemberHistoryTests.test_history_filters_by_date_range) ... ok
+test_history_of_missing_member_returns_404 (history.tests.MemberHistoryTests.test_history_of_missing_member_returns_404) ... ok
+test_history_rejects_invalid_dates (history.tests.MemberHistoryTests.test_history_rejects_invalid_dates) ... ok
+test_history_returns_sections_and_totals (history.tests.MemberHistoryTests.test_history_returns_sections_and_totals) ... ok
+test_coach_role_cannot_access_members (members.tests.MemberApiTests.test_coach_role_cannot_access_members) ... ok
+test_create_member_rejects_duplicate_email (members.tests.MemberApiTests.test_create_member_rejects_duplicate_email) ... ok
+test_list_and_create_member (members.tests.MemberApiTests.test_list_and_create_member) ... ok
+test_restore_of_active_member_returns_400 (members.tests.MemberApiTests.test_restore_of_active_member_returns_400) ... ok
+test_restore_requires_admin (members.tests.MemberApiTests.test_restore_requires_admin) ... ok
+test_soft_delete_keeps_record_and_hides_it_from_list (members.tests.MemberApiTests.test_soft_delete_keeps_record_and_hides_it_from_list) ... ok
+test_cancelling_membership_invalidates_it (memberships.tests.MembershipApiTests.test_cancelling_membership_invalidates_it) ... ok
+test_create_membership_calculates_end_date_and_creator (memberships.tests.MembershipApiTests.test_create_membership_calculates_end_date_and_creator) ... ok
+test_filter_by_member_query_param (memberships.tests.MembershipApiTests.test_filter_by_member_query_param) ... ok
+test_create_payment_registers_the_receiver (payments.tests.PaymentApiTests.test_create_payment_registers_the_receiver) ... ok
+test_filter_payments_by_membership_and_member (payments.tests.PaymentApiTests.test_filter_payments_by_membership_and_member) ... ok
+test_payment_list_requires_authentication (payments.tests.PaymentApiTests.test_payment_list_requires_authentication) ... ok
+test_admin_creates_and_updates_plan (plans.tests.PlanApiTests.test_admin_creates_and_updates_plan) ... ok
+test_anonymous_user_is_rejected (plans.tests.PlanApiTests.test_anonymous_user_is_rejected) ... ok
+test_receptionist_can_list_but_not_create (plans.tests.PlanApiTests.test_receptionist_can_list_but_not_create) ... ok
+test_login_returns_tokens_and_profile (users.tests.AuthFlowTests.test_login_returns_tokens_and_profile) ... /home/carlos/personal/fit-web/fit-web-backend/.venv/lib/python3.12/site-packages/jwt/api_jwt.py:149: InsecureKeyLengthWarning: The HMAC key is 15 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  return self._jws.encode(
+ok
+test_login_with_wrong_password_is_rejected (users.tests.AuthFlowTests.test_login_with_wrong_password_is_rejected) ... ok
+test_me_does_not_expose_role_changes (users.tests.AuthFlowTests.test_me_does_not_expose_role_changes)
+El usuario no puede auto-asignarse otro rol desde /auth/me/. ... ok
+test_me_requires_authentication (users.tests.AuthFlowTests.test_me_requires_authentication) ... ok
+test_me_returns_own_profile (users.tests.AuthFlowTests.test_me_returns_own_profile) ... ok
+test_refresh_rotates_access_token (users.tests.AuthFlowTests.test_refresh_rotates_access_token) ... /home/carlos/personal/fit-web/fit-web-backend/.venv/lib/python3.12/site-packages/jwt/api_jwt.py:370: InsecureKeyLengthWarning: The HMAC key is 15 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+  decoded = self.decode_complete(
+ok
+test_create_user_hashes_password_and_rejects_short_password (users.tests.StaffManagementTests.test_create_user_hashes_password_and_rejects_short_password) ... ok
+test_list_requires_admin_role (users.tests.StaffManagementTests.test_list_requires_admin_role) ... ok
+test_role_update_synchronizes_staff_flag (users.tests.StaffManagementTests.test_role_update_synchronizes_staff_flag) ... ok
+
+----------------------------------------------------------------------
+Ran 53 tests in 102.789s
+
+OK
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+ OK
+System check identified no issues (0 silenced).
+Código de salida: 0
