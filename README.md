@@ -238,6 +238,41 @@ Todos los endpoints `/api/` (excepto el login) están estrictamente protegidos. 
 
 ---
 
+## 📚 Documentación técnica y entregables
+
+| Recurso | Contenido |
+|---|---|
+| **[`DOCUMENTACION_TECNICA.md`](DOCUMENTACION_TECNICA.md)** | Documentación técnica **en español e inglés**: inventario de archivos, mapa de los temas estudiados (ítems 1–40 de la lista de chequeo) con archivo/clase/función/método, endpoints, archivos complementarios, dependencias, ejecución y evidencias |
+| [`complementos/`](complementos) | `diccionario_datos.xlsx` (diccionario de datos de las 8 tablas) y `datos_prueba.xlsx` (datos generados por los seeders) |
+| [`evidencias/pruebas_integracion.txt`](evidencias/pruebas_integracion.txt) | Salida completa de `python manage.py test -v 2` → **53 pruebas, 0 fallos** |
+| [`scripts/`](scripts) | `generar_diccionario_datos.py` y `generar_datos_prueba.py` (requieren `pip install -r requirements-dev.txt`) |
+| [`requirements-dev.txt`](requirements-dev.txt) | Dependencias de desarrollo (solo `openpyxl`, para los Excel) |
+
+### Regenerar los archivos complementarios
+
+```bash
+pip install -r requirements-dev.txt
+python manage.py migrate && python manage.py seed_all --count=100
+python scripts/generar_diccionario_datos.py
+python scripts/generar_datos_prueba.py
+```
+
+### Ejecutar las pruebas
+
+```bash
+python manage.py test -v 2
+```
+
+| Aplicación | Pruebas | Aplicación | Pruebas |
+|---|---|---|---|
+| `attendance` | 14 | `users` | 9 |
+| `history` | 8 | `members` | 6 |
+| `coaches` | 4 | `dashboard` | 3 |
+| `memberships` | 3 | `payments` | 3 |
+| `plans` | 3 | **Total** | **53** |
+
+---
+
 ## ✅ Lista de chequeo – Ubicación de cada ítem en el proyecto
 
 Mapa de los 40 ítems de la *Lista de chequeo – Validación del código fuente* (Asignatura: Diseño Funcional) sobre el código de este repositorio. Las rutas son relativas a la raíz del proyecto.
